@@ -1,0 +1,111 @@
+// Prisma schema. Run `npx prisma db push` after setting DATABASE_URL.
+// See README → "Database setup".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+enum Category {
+  fruits
+  vegetables
+  herbs
+  bundles
+}
+
+enum Role {
+  admin
+  staff
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+}
+
+model Product {
+  id          String   @id
+  slug        String   @unique
+  name        String
+  tagline     String
+  description String
+  price       Int // cents
+  unit        String
+  category    Category
+  origin      String
+  organic     Boolean  @default(false)
+  inSeason   Boolean  @default(true)
+  featured    Boolean  @default(false)
+  stock       Int      @default(0)
+  images      String[]
+  // Nutrition denormalized as Json — simple, evolvable, and the storefront
+  // renders it as a single block anyway.
+  nutrition   Json
+  tags        String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([slug])
+  @@index([stock])
+  @@index([featured])
+}
+
+model Order {
+  id        String      @id
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  status    OrderStatus @default(pending)
+
+  // Customer (denormalized — we don't have an authenticated customer model yet).
+  customerName    String
+  customerEmail   String
+  customerAddress String
+  customerCity    String
+  customerZip     String
+  customerCountry String?
+
+  // Money is stored in cents (Int) to avoid float drift.
+  subtotal Int
+  shipping Int
+  total    Int
+
+  items OrderItem[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([customerEmail])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  productId String
+  name      String // snapshot — product name at time of purchase
+  qty       Int
+  price     Int // unit price in cents at time of purchase
+
+  @@index([orderId])
+  @@index([productId])
+}

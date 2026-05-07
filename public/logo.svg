@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#1B2A1F" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <!-- leaves -->
+  <g filter="url(#s)">
+    <ellipse cx="48" cy="18" rx="14" ry="9" transform="rotate(-30 48 18)" fill="#7CB342"/>
+    <ellipse cx="72" cy="18" rx="14" ry="9" transform="rotate(30 72 18)" fill="#9CCC65"/>
+  </g>
+  <!-- fruit body in three slices -->
+  <g filter="url(#s)">
+    <path d="M30 65c0-18 13-30 30-30s30 12 30 30c0 20-15 35-30 35s-30-15-30-35z" fill="white"/>
+    <clipPath id="c">
+      <path d="M30 65c0-18 13-30 30-30s30 12 30 30c0 20-15 35-30 35s-30-15-30-35z"/>
+    </clipPath>
+    <g clip-path="url(#c)">
+      <rect x="28" y="32" width="22" height="72" fill="#E63946"/>
+      <rect x="50" y="32" width="22" height="72" fill="#F4D03F"/>
+      <rect x="72" y="32" width="22" height="72" fill="#F39C12"/>
+      <rect x="48" y="32" width="4" height="72" fill="white"/>
+      <rect x="70" y="32" width="4" height="72" fill="white"/>
+    </g>
+  </g>
+</svg>

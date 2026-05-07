@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --rype-red: #e63946;
+  --rype-yellow: #f4d03f;
+  --rype-orange: #f39c12;
+  --rype-leaf: #7cb342;
+  --rype-cream: #fff8ec;
+  --rype-ink: #1b2a1f;
+}
+
+html,
+body {
+  background: var(--rype-cream);
+  color: var(--rype-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: #7cb34233;
+  color: var(--rype-ink);
+}
+
+.scroll-hide::-webkit-scrollbar {
+  display: none;
+}
+.scroll-hide {
+  scrollbar-width: none;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-rype-leaf px-5 py-2.5 text-sm font-medium text-white shadow-soft transition hover:bg-rype-leafDark active:scale-95;
+}
+.btn-outline {
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-rype-ink/15 bg-white px-5 py-2.5 text-sm font-medium text-rype-ink transition hover:border-rype-leaf hover:text-rype-leafDark active:scale-95;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-rype-ink/70 transition hover:bg-rype-ink/5 hover:text-rype-ink;
+}
+
+.chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-rype-ink/10 bg-white px-3 py-1 text-xs font-medium text-rype-ink/70 transition hover:border-rype-leaf hover:text-rype-leafDark;
+}
+.chip-active {
+  @apply border-rype-leaf bg-rype-leaf/10 text-rype-leafDark;
+}
+
+.card {
+  @apply rounded-2xl border border-rype-line bg-white shadow-soft transition;
+}
+
+.input {
+  @apply w-full rounded-xl border border-rype-line bg-white px-4 py-2.5 text-sm text-rype-ink outline-none transition placeholder:text-rype-mute focus:border-rype-leaf focus:ring-2 focus:ring-rype-leaf/20;
+}
+
+.label {
+  @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-rype-mute;
+}

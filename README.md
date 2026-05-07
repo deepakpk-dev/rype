@@ -13,10 +13,10 @@
 
 ## Demo
 
-<!-- Replace with Loom embed -->
-[![Demo Video Placeholder](https://placehold.co/1200x600/png?text=Demo+Video+Placeholder)](https://placehold.co/1200x600/png?text=Demo+Video+Placeholder)
+<!-- Replace with your Loom embed URL -->
+[![Demo Video Placeholder](https://placehold.co/1200x600/png?text=Demo+Video+Placeholder)](https://rype-one.vercel.app)
 
-**Live demo:** [`https://rype.vercel.app`](https://rype.vercel.app) — _TBD_
+**Live demo:** [`https://rype-one.vercel.app`](https://rype-one.vercel.app)
 
 ### Demo accounts
 

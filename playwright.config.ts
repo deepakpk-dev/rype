@@ -19,7 +19,10 @@ export default defineConfig({
   webServer: {
     command: "npm run start",
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    // In CI the server is started (and waited on) by a dedicated workflow
+    // step so it is already running when Playwright begins. Locally, reuse
+    // the dev server if one is running, otherwise Playwright starts one.
+    reuseExistingServer: true,
     timeout: 120_000,
   },
 });

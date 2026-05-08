@@ -46,9 +46,22 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Start server for E2E
+        # Start the production server in the background so Playwright can
+        # reuse it. Explicit env ensures AUTH_URL (Auth.js v5) and DB are
+        # available to the running server process.
+        run: npm run start &
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: http://localhost:3000
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
       - name: Run E2E tests
         run: npm run e2e
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-          NEXTAUTH_URL: http://localhost:3000
+          AUTH_URL: http://localhost:3000

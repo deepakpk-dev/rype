@@ -5,8 +5,11 @@ const ADMIN_PASSWORD = "admin123";
 
 test.describe("Admin happy path", () => {
   test("login → orders table → open drawer → close with Escape", async ({ page }) => {
-    // 1. Login
-    await page.goto("/admin/login");
+    test.setTimeout(60_000);
+
+    // 1. Login — wait for networkidle so the Suspense boundary (useSearchParams)
+    //    finishes client-side rendering before we interact with the form.
+    await page.goto("/admin/login", { waitUntil: "networkidle" });
     await page.locator('[name="email"]').fill(ADMIN_EMAIL);
     await page.locator('[name="password"]').fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();

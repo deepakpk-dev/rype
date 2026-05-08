@@ -115,7 +115,7 @@ export function SearchCommand() {
             <ul className="max-h-[50vh] overflow-y-auto p-2">
               {results.length === 0 ? (
                 <li className="flex items-center gap-3 px-3 py-8 text-sm text-rype-mute">
-                  <Leaf className="h-4 w-4" /> No matches. Try "apple" or "basil".
+                  <Leaf className="h-4 w-4" /> No matches. Try &quot;apple&quot; or &quot;basil&quot;.
                 </li>
               ) : (
                 results.map((p, i) => (

@@ -5,7 +5,9 @@
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)
-![Tailwind](https://img.shields.io/badge/Tailwind-3.4-38BDF8?logo=tailwindcss&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-4.2-38BDF8?logo=tailwindcss&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-33%20tests-6E9F18?logo=vitest&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-E2E-2EAD33?logo=playwright&logoColor=white)
 ![Auth.js](https://img.shields.io/badge/Auth.js-v5-7C3AED)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -57,9 +59,9 @@ Visit `/admin/login` to sign in.
 
 **Data** — Prisma 6 + PostgreSQL (Neon-friendly). Server Actions for all admin mutations.
 
-**Tooling** — ESLint 9, PostCSS, `tsc --noEmit` typecheck, Turbopack dev, GitHub Actions CI, Dependabot
+**Tooling** — ESLint 9, PostCSS, `tsc --noEmit` typecheck, Turbopack dev, Vitest (33 unit tests), Playwright E2E, GitHub Actions CI (lint → typecheck → build → test → e2e), Dependabot
 
-**Planned** — Stripe webhook, Vercel Blob uploads, Vitest + Playwright, Resend email, audit log
+**Planned** — Stripe webhook, Vercel Blob uploads, Resend email, audit log
 
 ---
 
@@ -200,10 +202,12 @@ After the first deploy, run `npm run db:push && npm run db:seed` **locally** wit
 
 - **Zustand over Redux/Context** — cart, wishlist, and compare are pure client state with `localStorage` persistence. Zustand's `persist` middleware is one line; Redux Toolkit would be three files of overhead for the same outcome.
 - **Auth.js v5 split config** — `auth.config.ts` is edge-safe (no Node-only deps) so middleware can import it. `auth.ts` adds the Credentials provider with `bcryptjs`, which only runs in Node. Following this rule eliminates the most common v5 deployment crash.
-- **JWT sessions over database sessions** — no DB yet, and JWT keeps `/admin/*` middleware checks O(1) without a round-trip. Will revisit once Postgres lands and we need server-side revocation.
-- **bcrypt on a hardcoded user list** — could have used plaintext for a demo. Using real hashes means the auth flow is the same shape it'll be once users live in Postgres — swap `findUserByEmail` for a Prisma call and ship.
-- **No ORM yet** — orders and inventory mutate an in-memory store via API routes. The boundary between routes and storage is already a function call, so the migration to Prisma is mechanical, not architectural.
+- **JWT sessions over database sessions** — JWT keeps `/admin/*` middleware checks O(1) without a round-trip. Will revisit if server-side session revocation becomes a requirement.
+- **bcrypt on real Postgres users** — passwords are hashed with bcrypt at seed time and verified through Auth.js Credentials. The shape matches a real production auth system; no plaintext anywhere.
+- **Server Actions over API routes** — all admin mutations (`placeOrder`, `setStatus`, `updateProduct`) are typed Server Actions with Zod `safeParse` at the boundary. Removes the need for manual fetch wrappers and keeps mutations colocated with their data.
 - **Turbopack dev** — `next dev --turbopack` is the default in Next 15 and worth the speedup for a project this size.
+- **Vitest `include` glob scoped to `__tests__/`** — Playwright specs in `e2e/` use `test.describe()` from a different runner; without the explicit include pattern Vitest would try to execute them and error.
+- **Read-only E2E against the shared Neon DB** — the Playwright spec makes no mutations, so running it against the same database as the live demo is safe. The seeded admin user and orders are always present after `db:seed`.
 
 ---
 
@@ -211,25 +215,35 @@ After the first deploy, run `npm run db:push && npm run db:seed` **locally** wit
 
 | Status         | Item                                                              |
 | -------------- | ----------------------------------------------------------------- |
-| In progress    | Postgres + Prisma; replace in-memory stores                       |
-| Done           | Users table in Postgres (replaced in-memory `ADMIN_USERS`)         |
-| In progress    | Server Actions for admin mutations (replace `/api/*` handlers)    |
+| Done           | Postgres + Prisma (orders, inventory, users)                      |
+| Done           | Users table in Postgres (replaced in-memory `ADMIN_USERS`)        |
+| Done           | Server Actions for all admin mutations                            |
+| Done           | Vitest unit tests (33 tests — stores + cartTotals utility)        |
+| Done           | Playwright E2E (admin login → orders → drawer → keyboard close)   |
+| Done           | GitHub Actions CI (lint → typecheck → build → unit tests → E2E)  |
+| Done           | WCAG AA accessible OrderDrawer (focus trap, ARIA, Escape key)     |
+| Done           | WCAG AA color contrast on status badges (processing, cancelled)   |
 | Todo           | Stripe webhook + real payment intent (currently test-mode shell)  |
 | Todo           | Vercel Blob image upload for product photos                       |
-| Todo           | Vitest unit tests + Playwright e2e for the checkout flow          |
 | Todo           | Resend transactional email (order confirmation, password reset)   |
+| Todo           | Audit log (who/what/when for admin mutations)                     |
 
 ---
 
 ## Scripts
 
-| Script              | Purpose                                       |
-| ------------------- | --------------------------------------------- |
-| `npm run dev`       | Start Next.js dev server with Turbopack       |
-| `npm run build`     | Production build                              |
-| `npm run start`     | Run the production server                     |
-| `npm run lint`      | Lint with `eslint-config-next`                |
-| `npm run typecheck` | `tsc --noEmit` — strict type check            |
+| Script                  | Purpose                                                     |
+| ----------------------- | ----------------------------------------------------------- |
+| `npm run dev`           | Start Next.js dev server with Turbopack                     |
+| `npm run build`         | Production build                                            |
+| `npm run start`         | Run the production server                                   |
+| `npm run lint`          | Lint with `eslint-config-next`                              |
+| `npm run typecheck`     | `tsc --noEmit` — strict type check                          |
+| `npm run test`          | Vitest unit tests (33 tests, stores + utilities)            |
+| `npm run test:watch`    | Vitest in watch mode                                        |
+| `npm run test:coverage` | Vitest with V8 coverage report                              |
+| `npm run e2e`           | Playwright E2E — requires a build + `DATABASE_URL` in env  |
+| `npm run e2e:ui`        | Playwright interactive UI mode                              |
 
 ---
 

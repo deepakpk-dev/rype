@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useEffect, useState, useTransition } from "react";
 import { Database, Search, Trash2, X } from "lucide-react";
 import { useIsAdmin } from "@/lib/session-helpers";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
@@ -203,6 +203,20 @@ export function OrdersClient({
   );
 }
 
+const FOCUSABLE = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])';
+
+function trapFocus(container: HTMLElement, e: KeyboardEvent) {
+  const focusable = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE));
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+  } else {
+    if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+}
+
 function OrderDrawer({
   order,
   onClose,
@@ -212,22 +226,44 @@ function OrderDrawer({
   onClose: () => void;
   onStatus: (s: OrderStatus) => void;
 }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement;
+    closeRef.current?.focus();
+    return () => { (returnFocusRef.current as HTMLElement)?.focus?.(); };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex justify-end"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+        if (e.key === "Tab" && containerRef.current) trapFocus(containerRef.current, e.nativeEvent);
+      }}
+    >
       <div className="absolute inset-0 bg-rype-ink/40" />
       <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="order-drawer-title"
         className="relative h-full w-full max-w-md overflow-y-auto bg-white shadow-lift"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-rype-line p-5">
           <div>
             <div className="font-mono text-xs text-rype-mute">{order.id}</div>
-            <h2 className="font-display text-xl font-semibold">{order.customerName}</h2>
+            <h2 id="order-drawer-title" className="font-display text-xl font-semibold">{order.customerName}</h2>
             <div className="mt-1 text-xs text-rype-mute">
               {new Date(order.createdAt).toLocaleString()}
             </div>
           </div>
           <button
+            ref={closeRef}
             onClick={onClose}
             className="rounded-lg p-1.5 text-rype-mute hover:bg-rype-ink/5"
             aria-label="Close"

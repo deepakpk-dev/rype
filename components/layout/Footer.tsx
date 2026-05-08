@@ -8,7 +8,7 @@ export function Footer() {
   const pathname = usePathname();
   if (pathname?.startsWith("/admin")) return null;
   return (
-    <footer className="mt-24 border-t border-rype-line bg-white">
+    <footer className="border-t border-rype-line bg-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Logo />

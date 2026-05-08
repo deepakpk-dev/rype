@@ -49,7 +49,7 @@ export default async function Home() {
           <div className="relative aspect-[5/6] w-full max-w-lg justify-self-center">
             <div className="absolute -left-6 -top-6 h-40 w-40 rounded-full bg-rype-yellow/50 blur-3xl" />
             <div className="absolute -bottom-8 -right-8 h-48 w-48 rounded-full bg-rype-orange/40 blur-3xl" />
-            <div className="relative grid h-full grid-cols-2 grid-rows-3 gap-3">
+            <div className="relative grid h-full grid-cols-2 grid-rows-2 gap-3">
               <div className="relative col-span-2 overflow-hidden rounded-3xl bg-white shadow-lift">
                 <Image
                   src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=1200&q=75"
@@ -81,7 +81,7 @@ export default async function Home() {
       </section>
 
       {/* CATEGORIES */}
-      <section className="mx-auto max-w-7xl px-4 py-12">
+      <section className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:pb-14 sm:pt-8">
         <div className="mb-6 flex items-end justify-between">
           <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Shop by category</h2>
           <Link href="/products" className="text-sm text-rype-leafDark hover:underline">
@@ -108,7 +108,7 @@ export default async function Home() {
       </section>
 
       {/* FEATURED */}
-      <section className="mx-auto max-w-7xl px-4 py-12">
+      <section className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:pb-20 sm:pt-14">
         <div className="mb-6 flex items-end justify-between">
           <div>
             <span className="text-xs font-medium uppercase tracking-wider text-rype-leafDark">
@@ -130,7 +130,7 @@ export default async function Home() {
       </section>
 
       {/* PROMISE */}
-      <section className="mx-auto my-16 max-w-7xl px-4">
+      <section className="mx-auto mb-20 mt-0 max-w-7xl px-4">
         <div className="overflow-hidden rounded-3xl bg-rype-ink p-10 text-white lg:p-16">
           <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
             <div>

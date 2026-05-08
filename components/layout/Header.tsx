@@ -22,7 +22,6 @@ export function Header() {
   const wishlistCount = useWishlist((s) => s.ids.length);
   const compareCount = useCompare((s) => s.ids.length);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
 
   useEffect(() => {

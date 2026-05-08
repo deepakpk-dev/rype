@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { PRODUCTS, type Product } from "@/data/products";
+import type { Product } from "@/data/products";
 
 // ---- CART ----
 export type CartItem = { productId: string; qty: number };

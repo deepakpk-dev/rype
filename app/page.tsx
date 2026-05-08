@@ -112,7 +112,7 @@ export default async function Home() {
         <div className="mb-6 flex items-end justify-between">
           <div>
             <span className="text-xs font-medium uppercase tracking-wider text-rype-leafDark">
-              This week's pick
+              This week&apos;s pick
             </span>
             <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
               Featured produce
@@ -136,11 +136,11 @@ export default async function Home() {
             <div>
               <span className="text-xs font-medium uppercase tracking-wider text-rype-leaf">The Rype promise</span>
               <h2 className="mt-2 font-display text-3xl font-semibold leading-tight sm:text-4xl">
-                Never mealy. Never last week's. Ever.
+                Never mealy. Never last week&apos;s. Ever.
               </h2>
               <p className="mt-4 max-w-lg text-white/70">
                 Every piece of produce is picked to order and cold-chain shipped from a small European farm we know by name.
-                If something isn't perfect, we replace it — no questions, no emails.
+                If something isn&apos;t perfect, we replace it — no questions, no emails.
               </p>
               <Link href="/products" className="mt-6 inline-flex btn-primary">
                 Start shopping

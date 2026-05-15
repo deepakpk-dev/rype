@@ -15,8 +15,7 @@
 
 ## Demo
 
-<!-- Replace with your Loom embed URL -->
-[![Demo Video Placeholder](https://placehold.co/1200x600/png?text=Demo+Video+Placeholder)](https://rype-one.vercel.app)
+[![Rype storefront preview](./public/readme-homepage.png)](https://rype-one.vercel.app)
 
 **Live demo:** [`https://rype-one.vercel.app`](https://rype-one.vercel.app)
 

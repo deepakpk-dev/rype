@@ -28,6 +28,7 @@ export function ProductCard({ p, index = 0 }: { p: CardProduct; index?: number }
   const cmp = useCompare();
   const inWl = wl.ids.includes(p.id);
   const inCmp = cmp.ids.includes(p.id);
+  const usesCatalogArt = p.images[0]?.startsWith("/product-images/rype-catalog");
 
   return (
     <motion.article
@@ -37,13 +38,16 @@ export function ProductCard({ p, index = 0 }: { p: CardProduct; index?: number }
       transition={{ delay: Math.min(index, 10) * 0.03 }}
       className="group card relative flex flex-col overflow-hidden hover:-translate-y-1 hover:shadow-lift"
     >
-      <Link href={`/products/${p.slug}`} className="relative block aspect-square overflow-hidden bg-rype-cream">
+      <Link href={`/products/${p.slug}`} className="relative block aspect-square overflow-hidden bg-[#fffaf2]">
         <Image
           src={p.images[0]}
           alt={p.name}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+          className={cn(
+            "transition-transform duration-500 group-hover:scale-[1.06]",
+            usesCatalogArt ? "object-contain p-5 sm:p-6" : "object-cover"
+          )}
         />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
           <div className="flex flex-col gap-1">

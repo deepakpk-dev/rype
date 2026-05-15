@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 // Edge-safe Auth.js config used by middleware. Anything that needs Node
 // APIs (bcryptjs, DB drivers) must NOT live here — keep that in `auth.ts`.
 export const authConfig = {
+  trustHost: true,
   pages: {
     signIn: "/admin/login",
   },

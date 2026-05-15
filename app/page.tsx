@@ -24,9 +24,9 @@ export default async function Home() {
           <div className="bg-rype-yellow" />
           <div className="bg-rype-orange" />
         </div>
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 lg:grid-cols-[1fr_0.95fr] lg:items-center lg:gap-14 lg:py-20">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 lg:min-h-[620px] lg:grid-cols-[0.78fr_1.22fr] lg:items-center lg:gap-12 lg:py-14">
           <div className="animate-fade-up">
-            <div className="font-display text-[clamp(4.5rem,14vw,11rem)] font-semibold leading-[0.82] tracking-tight text-rype-ink">
+            <div className="font-display text-[clamp(3.4rem,11vw,8.5rem)] font-semibold leading-[0.82] tracking-tight text-rype-ink">
               <span>R</span>
               <span className="italic text-rype-red">y</span>
               <span>p</span>
@@ -34,43 +34,36 @@ export default async function Home() {
               <span>.</span>
             </div>
 
-            <div className="mt-7 border-t border-rype-line pt-7">
-              <div className="grid gap-7 xl:grid-cols-[0.9fr_1fr] xl:gap-12">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-rype-mute">
-                    Peak-season groceries
-                  </div>
-                  <h1 className="mt-4 max-w-xl font-display text-4xl font-semibold leading-[1.06] tracking-tight text-rype-ink sm:text-5xl">
-                    Ripe today.
-                    <br />
-                    Ready tomorrow.
-                  </h1>
-                </div>
+            <div className="mt-5 max-w-xl border-t border-rype-line pt-5 sm:mt-6 sm:pt-6">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-rype-mute">
+                Peak-season groceries
+              </div>
+              <h1 className="mt-4 max-w-lg font-display text-3xl font-semibold leading-[1.02] tracking-tight text-rype-ink sm:text-5xl">
+                Ripe today.
+                <br />
+                Ready tomorrow.
+              </h1>
+              <p className="mt-4 max-w-lg text-base leading-7 text-rype-ink/76 sm:mt-5 sm:text-lg sm:leading-8">
+                Rype sources fruit, vegetables, herbs, and market boxes from growers who pick for flavor first, then delivers them fast so everything arrives fresh, fragrant, and ready to use.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 sm:mt-7">
+                <Link href="/products" className="btn-primary px-7 py-3">
+                  Shop the market <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/products?category=bundles" className="btn-outline px-7 py-3">
+                  This week&apos;s boxes
+                </Link>
+              </div>
 
-                <div className="flex flex-col justify-end">
-                  <p className="max-w-xl text-base leading-8 text-rype-ink/76 sm:text-lg">
-                    Rype sources fruit, vegetables, herbs, and market boxes from growers who pick for flavor first, then delivers them fast so everything arrives fresh, fragrant, and ready to use.
-                  </p>
-                  <div className="mt-8 flex flex-wrap gap-3">
-                    <Link href="/products" className="btn-primary px-7 py-3">
-                      Shop the market <ArrowRight className="h-4 w-4" />
-                    </Link>
-                    <Link href="/products?category=bundles" className="btn-outline px-7 py-3">
-                      This week&apos;s boxes
-                    </Link>
-                  </div>
-
-                  <div className="mt-8 grid grid-cols-1 gap-3 border-t border-rype-line pt-5 text-sm sm:grid-cols-3">
-                    <Feat icon={<Truck />} label="24h delivery" />
-                    <Feat icon={<Shield />} label="Freshness guaranteed" />
-                    <Feat icon={<Sparkles />} label="Seasonal sourcing" />
-                  </div>
-                </div>
+              <div className="mt-6 grid grid-cols-1 gap-3 border-t border-rype-line pt-5 text-sm sm:mt-8 sm:grid-cols-3">
+                <Feat icon={<Truck />} label="24h delivery" />
+                <Feat icon={<Shield />} label="Freshness guaranteed" />
+                <Feat icon={<Sparkles />} label="Seasonal sourcing" />
               </div>
             </div>
           </div>
 
-          <div className="relative min-h-[420px] overflow-hidden rounded-[2rem] border border-rype-line bg-white shadow-lift lg:min-h-full">
+          <div className="relative min-h-[260px] overflow-hidden rounded-[2rem] border border-rype-line bg-white shadow-lift sm:min-h-[440px] lg:min-h-[560px]">
             <Image
               src={HOME_HERO_IMAGE.src}
               alt={HOME_HERO_IMAGE.alt}

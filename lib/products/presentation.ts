@@ -3,8 +3,8 @@ import type { ProductRow } from "@/lib/products/queries";
 const CATALOG_IMAGE_BASE = "/product-images/rype-catalog";
 
 export const HOME_HERO_IMAGE = {
-  src: "/home-images/rype-market-hero.png",
-  alt: "Fresh groceries arranged in a premium market setting",
+  src: "/home-images/rype-market-hero-v2.png",
+  alt: "Fresh seasonal groceries arranged in warm morning light",
 };
 
 const HOME_FEATURED_IMAGES: Record<string, string[]> = {

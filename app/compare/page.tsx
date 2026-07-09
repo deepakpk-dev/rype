@@ -2,15 +2,23 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCompare, useCart } from "@/lib/stores";
-import { PRODUCTS } from "@/data/products";
+import { useCatalog } from "@/lib/catalog-context";
+import type { Nutrition, ProductRow } from "@/lib/products/queries";
 import { formatEUR } from "@/lib/utils";
 import { Check, X, Scale, Plus } from "lucide-react";
 import { toast } from "@/components/ui/Toaster";
 
+// The seed always writes this shape; Prisma types it as JsonValue.
+// (Mirrors nutritionOf in lib/products/queries.ts, which is server-only.)
+function nutritionOf(p: ProductRow): Nutrition {
+  return p.nutrition as Nutrition;
+}
+
 export default function ComparePage() {
   const { ids, remove, clear } = useCompare();
   const add = useCart((s) => s.add);
-  const items = PRODUCTS.filter((p) => ids.includes(p.id));
+  const products = useCatalog();
+  const items = products.filter((p) => ids.includes(p.id));
 
   if (items.length === 0) {
     return (
@@ -50,10 +58,10 @@ export default function ComparePage() {
           <X className="h-4 w-4 text-rype-mute" />
         ),
     },
-    { label: "Calories (per 100g)", render: (p) => `${p.nutrition.calories} kcal` },
-    { label: "Carbs", render: (p) => `${p.nutrition.carbs} g` },
-    { label: "Protein", render: (p) => `${p.nutrition.protein} g` },
-    { label: "Fiber", render: (p) => `${p.nutrition.fiber} g` },
+    { label: "Calories (per 100g)", render: (p) => `${nutritionOf(p).calories} kcal` },
+    { label: "Carbs", render: (p) => `${nutritionOf(p).carbs} g` },
+    { label: "Protein", render: (p) => `${nutritionOf(p).protein} g` },
+    { label: "Fiber", render: (p) => `${nutritionOf(p).fiber} g` },
   ];
 
   return (

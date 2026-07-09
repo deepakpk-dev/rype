@@ -5,14 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Minus, Plus, Trash2, X, ShoppingBasket, ArrowRight } from "lucide-react";
 import { useCart, cartTotals } from "@/lib/stores";
-import { PRODUCTS } from "@/data/products";
+import { useCatalog } from "@/lib/catalog-context";
 import { formatEUR } from "@/lib/utils";
 
 export function CartDrawer() {
   const pathname = usePathname();
   const { items, drawerOpen, closeDrawer, setQty, remove } = useCart();
+  const products = useCatalog();
   if (pathname?.startsWith("/admin")) return null;
-  const { subtotal, shipping, total, FREE_SHIPPING_AT } = cartTotals(items, PRODUCTS);
+  const { subtotal, shipping, total, FREE_SHIPPING_AT } = cartTotals(items, products);
   const progress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_AT) * 100));
   const remaining = Math.max(0, FREE_SHIPPING_AT - subtotal);
 
@@ -84,7 +85,7 @@ export function CartDrawer() {
                 <ul className="divide-y divide-rype-line">
                   <AnimatePresence initial={false}>
                     {items.map((item) => {
-                      const p = PRODUCTS.find((x) => x.id === item.productId);
+                      const p = products.find((x) => x.id === item.productId);
                       if (!p) return null;
                       return (
                         <motion.li
@@ -123,6 +124,7 @@ export function CartDrawer() {
                                 value={item.qty}
                                 onDec={() => setQty(p.id, item.qty - 1)}
                                 onInc={() => setQty(p.id, item.qty + 1)}
+                                incDisabled={item.qty >= p.stock}
                               />
                               <button
                                 onClick={() => remove(p.id)}
@@ -177,10 +179,12 @@ function QtyStepper({
   value,
   onInc,
   onDec,
+  incDisabled,
 }: {
   value: number;
   onInc: () => void;
   onDec: () => void;
+  incDisabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-1 rounded-full border border-rype-line bg-white">
@@ -195,7 +199,9 @@ function QtyStepper({
       <button
         aria-label="Increase"
         onClick={onInc}
-        className="rounded-full p-1.5 hover:bg-rype-ink/5"
+        disabled={incDisabled}
+        title={incDisabled ? "No more stock available" : undefined}
+        className="rounded-full p-1.5 hover:bg-rype-ink/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
       >
         <Plus className="h-3.5 w-3.5" />
       </button>

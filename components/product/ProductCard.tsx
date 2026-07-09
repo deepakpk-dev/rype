@@ -19,6 +19,7 @@ export type CardProduct = {
   origin: string;
   organic: boolean;
   inSeason: boolean;
+  stock: number;
   images: string[];
 };
 
@@ -28,6 +29,7 @@ export function ProductCard({ p, index = 0 }: { p: CardProduct; index?: number }
   const cmp = useCompare();
   const inWl = wl.ids.includes(p.id);
   const inCmp = cmp.ids.includes(p.id);
+  const soldOut = p.stock <= 0;
   const usesCatalogArt = p.images[0]?.startsWith("/product-images/rype-catalog");
 
   return (
@@ -59,6 +61,11 @@ export function ProductCard({ p, index = 0 }: { p: CardProduct; index?: number }
             {p.inSeason && (
               <span className="inline-flex w-fit items-center rounded-full bg-rype-yellow/95 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rype-ink">
                 In season
+              </span>
+            )}
+            {soldOut && (
+              <span className="inline-flex w-fit items-center rounded-full bg-rype-ink/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                Sold out
               </span>
             )}
           </div>
@@ -115,9 +122,16 @@ export function ProductCard({ p, index = 0 }: { p: CardProduct; index?: number }
             add(p.id);
             toast(`Added ${p.name}`);
           }}
-          className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-full bg-rype-ink px-4 py-2 text-sm font-medium text-white transition hover:bg-rype-leafDark active:scale-95"
+          disabled={soldOut}
+          aria-disabled={soldOut}
+          className={cn(
+            "mt-3 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition",
+            soldOut
+              ? "cursor-not-allowed bg-rype-ink/10 text-rype-mute"
+              : "bg-rype-ink text-white hover:bg-rype-leafDark active:scale-95"
+          )}
         >
-          <Plus className="h-4 w-4" /> Add to basket
+          {soldOut ? "Sold out" : (<><Plus className="h-4 w-4" /> Add to basket</>)}
         </button>
       </div>
     </motion.article>

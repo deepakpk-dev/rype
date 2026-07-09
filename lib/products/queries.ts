@@ -41,7 +41,11 @@ export async function listProducts(): Promise<ProductRow[]> {
 }
 
 export async function lowStockCount(threshold = 10): Promise<number> {
-  return prisma.product.count({ where: { stock: { lte: threshold } } });
+  try {
+    return await prisma.product.count({ where: { stock: { lte: threshold } } });
+  } catch {
+    return PRODUCTS.filter((p) => p.stock <= threshold).length;
+  }
 }
 
 export async function listFeaturedProducts(limit = 8): Promise<ProductRow[]> {

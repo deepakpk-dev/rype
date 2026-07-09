@@ -5,11 +5,12 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { X, Scale } from "lucide-react";
 import { useCompare } from "@/lib/stores";
-import { PRODUCTS } from "@/data/products";
+import { useCatalog } from "@/lib/catalog-context";
 
 export function CompareTray() {
   const pathname = usePathname();
   const { ids, remove, clear } = useCompare();
+  const products = useCatalog();
   if (pathname?.startsWith("/admin")) return null;
   return (
     <AnimatePresence>
@@ -25,7 +26,7 @@ export function CompareTray() {
           </div>
           <div className="flex flex-1 gap-2 overflow-x-auto scroll-hide">
             {ids.map((id) => {
-              const p = PRODUCTS.find((x) => x.id === id);
+              const p = products.find((x) => x.id === id);
               if (!p) return null;
               return (
                 <motion.div

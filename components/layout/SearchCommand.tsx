@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, Leaf } from "lucide-react";
-import { PRODUCTS } from "@/data/products";
+import { useCatalog } from "@/lib/catalog-context";
 import { formatEUR } from "@/lib/utils";
 
 export function SearchCommand() {
@@ -15,22 +15,23 @@ export function SearchCommand() {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const products = useCatalog();
 
   const fuse = useMemo(
     () =>
-      new Fuse(PRODUCTS, {
+      new Fuse(products, {
         keys: ["name", "tagline", "description", "tags", "origin"],
         threshold: 0.35,
       }),
-    []
+    [products]
   );
 
   const onAdmin = pathname?.startsWith("/admin");
 
   const results = useMemo(() => {
-    if (!q.trim()) return PRODUCTS.slice(0, 6);
+    if (!q.trim()) return products.slice(0, 6);
     return fuse.search(q).slice(0, 8).map((r) => r.item);
-  }, [q, fuse]);
+  }, [q, fuse, products]);
 
   useEffect(() => {
     if (onAdmin) return;

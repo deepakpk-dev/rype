@@ -46,21 +46,34 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Check for E2E secrets
+        # Fork PRs cannot read repository secrets. DB-dependent E2E (admin
+        # login) is skipped there; the DB-free storefront E2E always runs.
+        id: e2e-secrets
+        run: echo "has=${{ secrets.DATABASE_URL != '' && secrets.AUTH_SECRET != '' }}" >> "$GITHUB_OUTPUT"
+
       - name: Start server for E2E
         # Start the production server in the background so Playwright can
         # reuse it. Explicit env ensures AUTH_URL (Auth.js v5) and DB are
-        # available to the running server process.
+        # available to the running server process. The dummy AUTH_SECRET
+        # fallback lets the server boot when secrets are unavailable.
         run: npm run start &
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'ci-dummy-secret-for-build-only-do-not-use' }}
           AUTH_URL: http://localhost:3000
 
       - name: Wait for server
         run: npx wait-on http://localhost:3000 --timeout 60000
 
-      - name: Run E2E tests
-        run: npm run e2e
+      - name: Run storefront E2E (no DB required)
+        run: npx playwright test e2e/storefront.spec.ts
+        env:
+          AUTH_URL: http://localhost:3000
+
+      - name: Run admin E2E
+        if: steps.e2e-secrets.outputs.has == 'true'
+        run: npx playwright test e2e/admin.spec.ts
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}

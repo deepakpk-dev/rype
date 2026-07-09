@@ -150,8 +150,14 @@ export default function PDPClient({
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            <button onClick={onAdd} className="btn-primary flex-1 sm:flex-none">
-              <ShoppingBasket className="h-4 w-4" /> Add to basket · {formatEUR(p.price * qty)}
+            <button
+              onClick={onAdd}
+              disabled={p.stock <= 0}
+              aria-disabled={p.stock <= 0}
+              className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+            >
+              <ShoppingBasket className="h-4 w-4" />
+              {p.stock <= 0 ? "Sold out" : <>Add to basket · {formatEUR(p.price * qty)}</>}
             </button>
             <button
               onClick={onWish}

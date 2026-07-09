@@ -96,49 +96,17 @@ export async function resetAllProductsAction(): Promise<
   if (!guard.ok) return guard;
 
   try {
-    let count = 0;
-    for (const seed of PRODUCTS) {
-      await prisma.product.update({
-        where: { id: seed.id },
-        data: {
-          stock: seed.stock,
-          price: seed.price,
-          organic: seed.organic,
-          featured: seed.featured ?? false,
-          inSeason: seed.inSeason,
-        },
-      });
-      count++;
-    }
-    revalidatePath("/admin/inventory");
-    revalidatePath("/admin");
-    // Storefront ISR: surfaces price/stock/flag edits to public pages.
-    revalidatePath("/");
-    revalidatePath("/products");
-    revalidatePath("/products/[slug]", "page");
-    return { ok: true, count };
-  } catch (e) {
-    console.error("resetAllProductsAction failed:", e);
-    return { ok: false, error: "Reset all failed" };
-  }
-}
-
-// Used by the checkout flow to atomically decrement stock when an order is
-// placed. Not admin-gated — anyone checking out can reduce stock.
-export async function decrementStockAction(
-  items: { productId: string; qty: number }[]
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!Array.isArray(items) || items.length === 0) {
-    return { ok: false, error: "No items" };
-  }
-  try {
     await prisma.$transaction(
-      items.map((i) =>
+      PRODUCTS.map((seed) =>
         prisma.product.update({
-          where: { id: i.productId },
-          // `decrement` will go negative if oversold — clamp at 0 by reading
-          // first via raw if needed. For demo purposes we accept negatives.
-          data: { stock: { decrement: i.qty } },
+          where: { id: seed.id },
+          data: {
+            stock: seed.stock,
+            price: seed.price,
+            organic: seed.organic,
+            featured: seed.featured ?? false,
+            inSeason: seed.inSeason,
+          },
         })
       )
     );
@@ -148,9 +116,13 @@ export async function decrementStockAction(
     revalidatePath("/");
     revalidatePath("/products");
     revalidatePath("/products/[slug]", "page");
-    return { ok: true };
+    return { ok: true, count: PRODUCTS.length };
   } catch (e) {
-    console.error("decrementStockAction failed:", e);
-    return { ok: false, error: "Stock update failed" };
+    console.error("resetAllProductsAction failed:", e);
+    return { ok: false, error: "Reset all failed" };
   }
 }
+
+// Stock decrement now happens inside placeOrderAction's transaction
+// (lib/orders/actions.ts) — the old public decrementStockAction let anyone
+// zero out inventory without buying anything.

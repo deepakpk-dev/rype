@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useWishlist, useCart } from "@/lib/stores";
-import { PRODUCTS } from "@/data/products";
+import { useCatalog } from "@/lib/catalog-context";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Heart, ShoppingBasket } from "lucide-react";
 import { toast } from "@/components/ui/Toaster";
@@ -9,7 +9,8 @@ import { toast } from "@/components/ui/Toaster";
 export default function WishlistPage() {
   const { ids, clear } = useWishlist();
   const add = useCart((s) => s.add);
-  const items = PRODUCTS.filter((p) => ids.includes(p.id));
+  const products = useCatalog();
+  const items = products.filter((p) => ids.includes(p.id));
 
   const moveAllToCart = () => {
     items.forEach((p) => add(p.id));

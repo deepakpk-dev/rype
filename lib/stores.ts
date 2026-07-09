@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Product } from "@/data/products";
+import { FREE_SHIPPING_AT, shippingFor } from "@/lib/cart-math";
 
 // ---- CART ----
 export type CartItem = { productId: string; qty: number };
@@ -111,7 +111,10 @@ export const useCompare = create<CompareState>()(
 //   lib/products/actions.ts         - update / reset / decrement (Server Actions)
 
 // ---- Helpers ----
-export function cartTotals(items: CartItem[], products: Product[]) {
+export function cartTotals(
+  items: CartItem[],
+  products: { id: string; price: number }[]
+) {
   let subtotal = 0;
   let count = 0;
   for (const i of items) {
@@ -120,8 +123,7 @@ export function cartTotals(items: CartItem[], products: Product[]) {
     subtotal += p.price * i.qty;
     count += i.qty;
   }
-  const FREE_SHIPPING_AT = 5000; // €50
-  const shipping = subtotal >= FREE_SHIPPING_AT || subtotal === 0 ? 0 : 399;
+  const shipping = shippingFor(subtotal);
   const total = subtotal + shipping;
   return { subtotal, shipping, total, count, FREE_SHIPPING_AT };
 }

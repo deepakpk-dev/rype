@@ -13,6 +13,17 @@ export async function listOrders(): Promise<OrderWithItems[]> {
   });
 }
 
+export async function getOrderById(id: string): Promise<OrderWithItems | null> {
+  if (!id) return null;
+  try {
+    return await prisma.order.findUnique({ where: { id }, include: { items: true } });
+  } catch {
+    // No static fallback exists for orders; the confirmation page must never
+    // 500 right after a customer paid, so degrade to the generic view.
+    return null;
+  }
+}
+
 export async function orderStats() {
   // Single round-trip: aggregate + count in parallel.
   const [orders, pending, revenueAgg] = await Promise.all([

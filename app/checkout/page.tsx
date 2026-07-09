@@ -9,9 +9,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, MapPin, Calendar } from "lucide-react";
 import { useCart, cartTotals } from "@/lib/stores";
+import { useCatalog } from "@/lib/catalog-context";
 import { placeOrderAction } from "@/lib/orders/actions";
-import { decrementStockAction } from "@/lib/products/actions";
-import { PRODUCTS } from "@/data/products";
 import { formatEUR, cn } from "@/lib/utils";
 
 const addressSchema = z.object({
@@ -35,8 +34,11 @@ const DELIVERY_SLOTS = [
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, clear } = useCart();
-  const totals = cartTotals(items, PRODUCTS);
+  const { items: rawItems, clear } = useCart();
+  const products = useCatalog();
+  // Drop cart lines whose product no longer exists (stale localStorage).
+  const items = rawItems.filter((i) => products.some((p) => p.id === i.productId));
+  const totals = cartTotals(items, products);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [slot, setSlot] = useState(DELIVERY_SLOTS[0].id);
   const [submitting, setSubmitting] = useState(false);
@@ -74,11 +76,8 @@ export default function CheckoutPage() {
     // and redirect to a Stripe-hosted page. For v1 we run a mock pay flow.
     await new Promise((r) => setTimeout(r, 800));
 
-    const orderItems = items.map((i) => {
-      const p = PRODUCTS.find((x) => x.id === i.productId)!;
-      return { productId: p.id, name: p.name, qty: i.qty, price: p.price };
-    });
-
+    // The server prices the order from the database and decrements stock in
+    // the same transaction — we only send ids and quantities.
     const res = await placeOrderAction({
       customer: {
         name: `${values.firstName} ${values.lastName}`,
@@ -88,10 +87,7 @@ export default function CheckoutPage() {
         zip: values.postalCode,
         country: values.country,
       },
-      items: orderItems,
-      subtotal: totals.subtotal,
-      shipping: totals.shipping,
-      total: totals.total,
+      items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
     });
 
     if (!res.ok) {
@@ -99,12 +95,6 @@ export default function CheckoutPage() {
       alert(res.error);
       return;
     }
-
-    // Decrement stock atomically in the DB. Best-effort — if it fails the
-    // order is still placed (stock is a soft constraint, not money).
-    await decrementStockAction(
-      items.map((i) => ({ productId: i.productId, qty: i.qty }))
-    );
 
     clear();
     router.push(`/checkout/success?order=${res.id}`);
@@ -288,7 +278,8 @@ export default function CheckoutPage() {
             <h3 className="font-display text-lg font-semibold">Order summary</h3>
             <ul className="mt-4 space-y-3">
               {items.map((i) => {
-                const p = PRODUCTS.find((x) => x.id === i.productId)!;
+                const p = products.find((x) => x.id === i.productId);
+                if (!p) return null;
                 return (
                   <li key={i.productId} className="flex items-center gap-3">
                     <div className="relative h-12 w-12 overflow-hidden rounded-lg">

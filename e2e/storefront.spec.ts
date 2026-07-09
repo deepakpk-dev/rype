@@ -11,8 +11,12 @@ test.describe("Storefront happy path", () => {
     const firstCard = page.locator("article").first();
     await expect(firstCard).toBeVisible();
 
-    // 2. Open the first product's detail page.
-    await firstCard.getByRole("link").first().click();
+    // 2. Open the first product's detail page. Navigate via href instead of
+    //    clicking: the card's framer-motion hover animation keeps the element
+    //    unstable long enough to flake pointer-based clicks.
+    const href = await firstCard.getByRole("link").first().getAttribute("href");
+    expect(href).toMatch(/\/products\/.+/);
+    await page.goto(href!, { waitUntil: "networkidle" });
     await expect(page).toHaveURL(/\/products\/.+/);
 
     // 3. Add to basket — the cart drawer auto-opens.

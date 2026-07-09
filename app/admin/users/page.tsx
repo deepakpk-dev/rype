@@ -1,17 +1,20 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { UsersClient } from "./UsersClient";
-import type { User } from "@prisma/client";
+import { UsersClient, type AdminUser } from "./UsersClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
   const session = await auth();
 
-  let users: User[] = [];
+  let users: AdminUser[] = [];
   let dbError: string | null = null;
   try {
-    users = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
+    // Explicit select: never ship passwordHash to the client.
+    users = await prisma.user.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+    });
   } catch (e) {
     console.error("listUsers failed:", e);
     dbError =

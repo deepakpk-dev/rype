@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, MapPin, Calendar } from "lucide-react";
 import { useCart, cartTotals } from "@/lib/stores";
 import { placeOrderAction } from "@/lib/orders/actions";
-import { decrementStockAction } from "@/lib/products/actions";
 import { PRODUCTS } from "@/data/products";
 import { formatEUR, cn } from "@/lib/utils";
 
@@ -74,11 +73,8 @@ export default function CheckoutPage() {
     // and redirect to a Stripe-hosted page. For v1 we run a mock pay flow.
     await new Promise((r) => setTimeout(r, 800));
 
-    const orderItems = items.map((i) => {
-      const p = PRODUCTS.find((x) => x.id === i.productId)!;
-      return { productId: p.id, name: p.name, qty: i.qty, price: p.price };
-    });
-
+    // The server prices the order from the database and decrements stock in
+    // the same transaction — we only send ids and quantities.
     const res = await placeOrderAction({
       customer: {
         name: `${values.firstName} ${values.lastName}`,
@@ -88,10 +84,7 @@ export default function CheckoutPage() {
         zip: values.postalCode,
         country: values.country,
       },
-      items: orderItems,
-      subtotal: totals.subtotal,
-      shipping: totals.shipping,
-      total: totals.total,
+      items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
     });
 
     if (!res.ok) {
@@ -99,12 +92,6 @@ export default function CheckoutPage() {
       alert(res.error);
       return;
     }
-
-    // Decrement stock atomically in the DB. Best-effort — if it fails the
-    // order is still placed (stock is a soft constraint, not money).
-    await decrementStockAction(
-      items.map((i) => ({ productId: i.productId, qty: i.qty }))
-    );
 
     clear();
     router.push(`/checkout/success?order=${res.id}`);

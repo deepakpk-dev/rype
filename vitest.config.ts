@@ -8,6 +8,11 @@ export default defineConfig({
     include: ["__tests__/**/*.test.ts"],
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, ".") },
+    alias: {
+      "@": path.resolve(__dirname, "."),
+      // `server-only` throws when imported outside an RSC bundler; stub it
+      // so server modules (queries, actions) are testable under Vitest.
+      "server-only": path.resolve(__dirname, "__tests__/mocks/server-only.ts"),
+    },
   },
 });

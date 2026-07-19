@@ -47,12 +47,52 @@ beforeEach(() => {
 
 describe("persistPublicEvent", () => {
   it("treats a duplicate event id as a successful retry", async () => {
-    prismaMock.growthEvent.create.mockRejectedValue({ code: "P2002" });
+    prismaMock.growthEvent.create.mockRejectedValue({
+      code: "P2002",
+      meta: { modelName: "GrowthEvent", target: ["id"] },
+    });
 
     await expect(persistPublicEvent(validCheckoutStarted, attribution)).resolves.toEqual({
       accepted: true,
       duplicate: true,
     });
+  });
+
+  it("does not misclassify a session-upsert unique failure as an event retry", async () => {
+    const failure = {
+      code: "P2002",
+      meta: { modelName: "GrowthSession", target: ["id"] },
+    };
+    prismaMock.growthSession.upsert.mockRejectedValue(failure);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(persistPublicEvent(validCheckoutStarted, attribution)).rejects.toBe(failure);
+    expect(prismaMock.growthEvent.create).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("does not accept a non-id event uniqueness conflict as a duplicate retry", async () => {
+    const failure = {
+      code: "P2002",
+      meta: { modelName: "GrowthEvent", target: ["sessionId", "occurredAt"] },
+    };
+    prismaMock.growthEvent.create.mockRejectedValue(failure);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(persistPublicEvent(validCheckoutStarted, attribution)).rejects.toBe(failure);
+    errorSpy.mockRestore();
+  });
+
+  it("does not confuse a string constraint ending in id with the event primary key", async () => {
+    const failure = {
+      code: "P2002",
+      meta: { modelName: "GrowthEvent", target: "order_id" },
+    };
+    prismaMock.growthEvent.create.mockRejectedValue(failure);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(persistPublicEvent(validCheckoutStarted, attribution)).rejects.toBe(failure);
+    errorSpy.mockRestore();
   });
 
   it("creates the session and normalized event in one transaction", async () => {
@@ -165,6 +205,50 @@ describe("recordExposure", () => {
 });
 
 describe("recordTrustedOrderCompleted", () => {
+  const validTrustedOrder = {
+    sessionId: "sess_000000000001",
+    orderId: "ord_1",
+    total: 1497,
+    itemCount: 2,
+  };
+
+  it("rejects invalid trusted totals and item counts before any Prisma write", async () => {
+    const invalidInputs = [
+      { ...validTrustedOrder, total: -1 },
+      { ...validTrustedOrder, total: 1497.5 },
+      { ...validTrustedOrder, total: 100_000_001 },
+      { ...validTrustedOrder, itemCount: 0 },
+      { ...validTrustedOrder, itemCount: 1.5 },
+      { ...validTrustedOrder, itemCount: 1000 },
+    ];
+
+    for (const input of invalidInputs) {
+      await expect(recordTrustedOrderCompleted(input)).rejects.toThrow("INVALID_TRUSTED_ORDER_EVENT");
+    }
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid IDs, experiment values, and unknown fields before Prisma writes", async () => {
+    const invalidInputs = [
+      { ...validTrustedOrder, sessionId: "person@example.com" },
+      { ...validTrustedOrder, orderId: "bad/order" },
+      {
+        ...validTrustedOrder,
+        experiments: { free_shipping_progress_v1: "winner" },
+      },
+      {
+        ...validTrustedOrder,
+        experiments: { unknown_experiment: "control" },
+      },
+      { ...validTrustedOrder, customerEmail: "hidden@example.com" },
+    ];
+
+    for (const input of invalidInputs) {
+      await expect(recordTrustedOrderCompleted(input as never)).rejects.toThrow("INVALID_TRUSTED_ORDER_EVENT");
+    }
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
   it("normalizes the trusted order conversion and makes retries idempotent", async () => {
     await recordTrustedOrderCompleted({
       sessionId: "sess_000000000001",
@@ -186,5 +270,19 @@ describe("recordTrustedOrderCompleted", () => {
         cartSize: 2,
       },
     });
+  });
+
+  it("accepts only an event-id conflict as a trusted conversion retry", async () => {
+    prismaMock.growthEvent.create.mockRejectedValue({
+      code: "P2002",
+      meta: { modelName: "GrowthEvent", target: ["id"] },
+    });
+
+    await expect(recordTrustedOrderCompleted({
+      sessionId: "sess_000000000001",
+      orderId: "ord_1",
+      total: 1497,
+      itemCount: 2,
+    })).resolves.toEqual({ accepted: true, duplicate: true });
   });
 });

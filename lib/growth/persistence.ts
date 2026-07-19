@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import {
   assignVariant,
@@ -6,7 +7,11 @@ import {
   type ExperimentKey,
   type Variant,
 } from "@/lib/growth/experiments";
-import type { PublicGrowthEvent } from "@/lib/growth/schema";
+import {
+  experimentKeySchema,
+  variantSchema,
+  type PublicGrowthEvent,
+} from "@/lib/growth/schema";
 
 export type GrowthAttribution = {
   utmSource?: string;
@@ -24,14 +29,18 @@ export type ExposureInput = {
   attribution?: GrowthAttribution;
 };
 
-export type TrustedOrderCompletedInput = {
-  sessionId: string;
-  orderId: string;
-  total: number;
-  itemCount: number;
-  occurredAt?: Date;
-  experiments?: Partial<Record<ExperimentKey, Variant>>;
-};
+const trustedOrderCompletedInputSchema = z.object({
+  sessionId: z.string().regex(/^[a-zA-Z0-9_-]{8,80}$/),
+  orderId: z.string().trim().regex(/^[a-zA-Z0-9_-]{1,80}$/),
+  total: z.number().int().min(0).max(100_000_000),
+  itemCount: z.number().int().min(1).max(999),
+  occurredAt: z.date().optional(),
+  experiments: z.record(experimentKeySchema, variantSchema)
+    .refine((value) => Object.keys(value).length <= 3, "At most three experiments are allowed")
+    .optional(),
+}).strict();
+
+export type TrustedOrderCompletedInput = z.infer<typeof trustedOrderCompletedInputSchema>;
 
 type PersistenceResult =
   | { accepted: true; duplicate: boolean }
@@ -108,11 +117,17 @@ function productIdFor(event: PublicGrowthEvent) {
     : undefined;
 }
 
-function isUniqueConstraintError(error: unknown): error is { code: "P2002" } {
-  return typeof error === "object"
-    && error !== null
-    && "code" in error
-    && error.code === "P2002";
+function isEventIdConflict(error: unknown) {
+  if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "P2002") {
+    return false;
+  }
+  const meta = "meta" in error && typeof error.meta === "object" && error.meta !== null
+    ? error.meta
+    : undefined;
+  const target = meta && "target" in meta ? meta.target : undefined;
+  return (Array.isArray(target) && target.length === 1 && target[0] === "id")
+    || target === "id"
+    || target === "GrowthEvent_pkey";
 }
 
 export async function persistPublicEvent(
@@ -131,14 +146,18 @@ export async function persistPublicEvent(
       }
 
       await upsertSession(tx, event.sessionId, attribution);
-      await tx.growthEvent.create({ data: eventData(event) });
+      try {
+        await tx.growthEvent.create({ data: eventData(event) });
+      } catch (error) {
+        if (isEventIdConflict(error)) {
+          return { accepted: true, duplicate: true } as const;
+        }
+        throw error;
+      }
       return { accepted: true, duplicate: false } as const;
     });
     return result;
   } catch (error) {
-    if (isUniqueConstraintError(error)) {
-      return { accepted: true, duplicate: true };
-    }
     console.error("Growth event persistence failed", error);
     throw error;
   }
@@ -173,32 +192,39 @@ export async function recordExposure(input: ExposureInput) {
 }
 
 export async function recordTrustedOrderCompleted(input: TrustedOrderCompletedInput) {
-  for (const [experiment, variant] of Object.entries(input.experiments ?? {})) {
-    if (assignVariant(input.sessionId, experiment as ExperimentKey) !== variant) {
+  const parsed = trustedOrderCompletedInputSchema.safeParse(input);
+  if (!parsed.success) throw new Error("INVALID_TRUSTED_ORDER_EVENT");
+  const trustedInput = parsed.data;
+
+  for (const [experiment, variant] of Object.entries(trustedInput.experiments ?? {})) {
+    if (assignVariant(trustedInput.sessionId, experiment as ExperimentKey) !== variant) {
       throw new Error("INVALID_VARIANT");
     }
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await upsertSession(tx, input.sessionId);
-      await tx.growthEvent.create({
-        data: {
-          id: `order_${input.orderId}`,
-          sessionId: input.sessionId,
-          name: "order_completed",
-          occurredAt: input.occurredAt ?? new Date(),
-          orderId: input.orderId,
-          cartValue: input.total,
-          cartSize: input.itemCount,
-        },
-      });
+    const duplicate = await prisma.$transaction(async (tx) => {
+      await upsertSession(tx, trustedInput.sessionId);
+      try {
+        await tx.growthEvent.create({
+          data: {
+            id: `order_${trustedInput.orderId}`,
+            sessionId: trustedInput.sessionId,
+            name: "order_completed",
+            occurredAt: trustedInput.occurredAt ?? new Date(),
+            orderId: trustedInput.orderId,
+            cartValue: trustedInput.total,
+            cartSize: trustedInput.itemCount,
+          },
+        });
+      } catch (error) {
+        if (isEventIdConflict(error)) return true;
+        throw error;
+      }
+      return false;
     });
-    return { accepted: true, duplicate: false } as const;
+    return { accepted: true, duplicate } as const;
   } catch (error) {
-    if (isUniqueConstraintError(error)) {
-      return { accepted: true, duplicate: true } as const;
-    }
     console.error("Trusted growth conversion persistence failed", error);
     throw error;
   }

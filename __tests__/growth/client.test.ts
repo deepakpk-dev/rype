@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  coarsenLandingPath,
   getGrowthIdentity,
   trackExposure,
   trackGrowthEvent,
@@ -12,6 +13,13 @@ beforeEach(() => {
 });
 
 describe("getGrowthIdentity", () => {
+  it("coarsens arbitrary paths without retaining private segments", () => {
+    expect(coarsenLandingPath("/account/person@example.com")).toBe("/other");
+    expect(coarsenLandingPath("/products/person@example.com")).toBe("/products/:slug");
+    expect(coarsenLandingPath("/products/fresh-tomatoes")).toBe("/products/:slug");
+    expect(coarsenLandingPath("/products/fresh-tomatoes/reviews")).toBe("/other");
+  });
+
   it("keeps the generated opaque session id and only allowlisted campaign values", () => {
     history.replaceState(
       {},
@@ -53,6 +61,21 @@ describe("getGrowthIdentity", () => {
 
     expect(identity.attribution).not.toHaveProperty("utmSource");
     expect(identity.attribution.utmMedium).toBe("paid-search");
+  });
+
+  it("keeps one in-memory identity when session storage is unavailable", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("storage disabled");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage disabled");
+    });
+
+    const first = getGrowthIdentity();
+    const second = getGrowthIdentity();
+
+    expect(second).toEqual(first);
+    expect(second.sessionId).toMatch(/^sess_[a-f0-9-]{36}$/);
   });
 });
 

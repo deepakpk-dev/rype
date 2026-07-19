@@ -5,6 +5,14 @@ import { attributionSchema, type PublicGrowthEvent } from "@/lib/growth/schema";
 const IDENTITY_STORAGE_KEY = "rype-growth-identity-v1";
 const SESSION_ID_PATTERN = /^sess_[a-f0-9-]{36}$/;
 const ACQUISITION_TOKEN_PATTERN = /^[a-zA-Z0-9_-]+$/;
+const EXACT_LANDING_PATHS = new Set([
+  "/",
+  "/products",
+  "/checkout",
+  "/checkout/success",
+  "/compare",
+  "/wishlist",
+]);
 
 export type GrowthIdentity = {
   sessionId: string;
@@ -19,10 +27,20 @@ export type ExposureTransportInput = {
   attribution?: GrowthAttribution;
 };
 
+let inMemoryIdentity: GrowthIdentity | undefined;
+
 function storedIdentity(): GrowthIdentity | undefined {
+  let value: string | null;
   try {
-    const value = sessionStorage.getItem(IDENTITY_STORAGE_KEY);
-    if (!value) return undefined;
+    value = sessionStorage.getItem(IDENTITY_STORAGE_KEY);
+  } catch {
+    return inMemoryIdentity;
+  }
+
+  // Storage is available again, so it is authoritative over the fallback.
+  inMemoryIdentity = undefined;
+  if (!value) return undefined;
+  try {
     const parsed = JSON.parse(value) as Partial<GrowthIdentity>;
     const attribution = attributionSchema.safeParse(parsed.attribution);
     if (!parsed.sessionId || !SESSION_ID_PATTERN.test(parsed.sessionId) || !attribution.success) {
@@ -43,6 +61,12 @@ function acquisitionValue(params: URLSearchParams, key: string, maxLength: numbe
     : undefined;
 }
 
+export function coarsenLandingPath(pathname: string): GrowthAttribution["landingPath"] {
+  if (EXACT_LANDING_PATHS.has(pathname)) return pathname;
+  if (/^\/products\/[^/]+$/.test(pathname)) return "/products/:slug";
+  return "/other";
+}
+
 function referrerCategory(): GrowthAttribution["referrerCategory"] {
   if (!document.referrer) return "direct";
 
@@ -61,7 +85,7 @@ function referrerCategory(): GrowthAttribution["referrerCategory"] {
 function createIdentity(): GrowthIdentity {
   const params = new URLSearchParams(window.location.search);
   const attribution: GrowthAttribution = {
-    landingPath: window.location.pathname,
+    landingPath: coarsenLandingPath(window.location.pathname),
     referrerCategory: referrerCategory(),
   };
   const utmSource = acquisitionValue(params, "utm_source", 80);
@@ -84,9 +108,10 @@ export function getGrowthIdentity(): GrowthIdentity {
   const identity = createIdentity();
   try {
     sessionStorage.setItem(IDENTITY_STORAGE_KEY, JSON.stringify(identity));
+    inMemoryIdentity = undefined;
   } catch {
-    // Storage can be disabled. The storefront remains usable with an
-    // in-memory identity for this call.
+    inMemoryIdentity ??= identity;
+    return inMemoryIdentity;
   }
   return identity;
 }

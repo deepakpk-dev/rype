@@ -17,7 +17,16 @@ export const attributionSchema = z.object({
   utmSource: acquisitionToken(80).optional(),
   utmMedium: acquisitionToken(80).optional(),
   utmCampaign: acquisitionToken(120).optional(),
-  landingPath: z.string().startsWith("/").max(200).regex(/^\/[^?#]*$/),
+  landingPath: z.enum([
+    "/",
+    "/products",
+    "/products/:slug",
+    "/checkout",
+    "/checkout/success",
+    "/compare",
+    "/wishlist",
+    "/other",
+  ]),
   referrerCategory: z.enum(["direct", "search", "social", "referral", "internal"]),
 }).strict();
 const common = {

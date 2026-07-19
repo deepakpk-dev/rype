@@ -67,6 +67,19 @@ describe("POST /api/growth/events", () => {
     expect(persistenceMocks.persistPublicEvent).not.toHaveBeenCalled();
   });
 
+  it("returns 400 for an uncoarsened landing path", async () => {
+    const response = await postEvent(requestFor({
+      ...validProductViewed,
+      attribution: {
+        ...validProductViewed.attribution,
+        landingPath: "/account/person@example.com",
+      },
+    }));
+
+    expect(response.status).toBe(400);
+    expect(persistenceMocks.persistPublicEvent).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when a supplied product does not exist", async () => {
     persistenceMocks.persistPublicEvent.mockResolvedValue({
       accepted: false,

@@ -92,7 +92,6 @@ export default function CheckoutPage() {
   };
 
   const onSubmit = handleSubmit(async (values) => {
-    track(checkoutStepCompletedEvent(3, items, products));
     setSubmitting(true);
     // Simulate Stripe test checkout — in production this would POST to /api/checkout
     // and redirect to a Stripe-hosted page. For v1 we run a mock pay flow.
@@ -100,6 +99,7 @@ export default function CheckoutPage() {
 
     // The server prices the order from the database and decrements stock in
     // the same transaction — we only send ids and quantities.
+    track(checkoutStepCompletedEvent(3, items, products));
     const res = await placeOrderAction({
       customer: {
         name: `${values.firstName} ${values.lastName}`,
@@ -125,7 +125,6 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <ExperimentExposure experiment="checkout_reassurance_v1" />
-      <ExperimentExposure experiment="free_shipping_progress_v1" />
       <Link href="/products" className="inline-flex items-center gap-1 text-sm text-rype-mute hover:text-rype-ink">
         <ArrowLeft className="h-4 w-4" /> Continue shopping
       </Link>

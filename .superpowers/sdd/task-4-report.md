@@ -111,3 +111,102 @@ Modified:
 ## Concerns
 
 No known implementation blockers. In an environment without `DATABASE_URL`, growth POSTs return fail-open failures and therefore are not persisted even though the static storefront and E2E path work. A configured database is required to verify stored events/exposures end to end; that prerequisite is outside Task 4 and was deliberately not added.
+
+---
+
+## Re-review fixes: actual-render exposure, payment timing, browser coverage, and accessibility
+
+Addressed every item in `task-4-findings.md` after the user resolved `free_shipping_progress_v1` in favor of cart-only exposure.
+
+### TDD RED evidence
+
+Expanded `e2e/storefront.spec.ts` before changing production code. The new harness:
+
+- derives deterministic all-control and all-treatment session IDs through the real `assignVariant` function;
+- installs the matching persisted anonymous identity before hydration;
+- can seed the persisted Zustand cart for direct checkout coverage;
+- intercepts both growth endpoints and captures parsed request bodies, so behavior is deterministic without Postgres;
+- leaves the original happy-path test intact.
+
+Initial expanded command:
+
+```text
+$env:AUTH_SECRET='test-only-rype-growth-secret-2026'; npm.cmd run e2e -- e2e/storefront.spec.ts
+```
+
+Initial result: FAIL — 1 passed and 3 failed. This run directly proved checkout sent one forbidden `free_shipping_progress_v1` exposure. Two recommendation failures identified incorrect test fixture expectations (`Baby Leeks` is one of the four actual static-fallback results); those expectations were corrected before production changes and are not counted as product defects.
+
+Corrected focused RED command:
+
+```text
+$env:AUTH_SECRET='test-only-rype-growth-secret-2026'; npm.cmd run e2e -- e2e/storefront.spec.ts --grep "treatment renders|checkout exposes"
+```
+
+Corrected result: FAIL — 2/2 tests failed for the intended missing behaviors:
+
+- the treatment shipping surface had no element with the `progressbar` role or value attributes;
+- checkout had already captured three completed-step events where only address and delivery were expected, demonstrating the payment event's premature placement.
+
+The earlier checkout-only assertion also separately recorded the forbidden free-shipping exposure (`expected length 0`, received one treatment exposure), completing RED evidence for all three production defects.
+
+### Minimal production fixes
+
+- Removed `ExperimentExposure experiment="free_shipping_progress_v1"` from checkout. Both control and treatment free-shipping surfaces continue to expose from the cart drawer, and direct checkout now exposes only `checkout_reassurance_v1`.
+- Moved payment step completion below the existing simulated-payment wait and directly before `placeOrderAction`. Address and delivery timing is unchanged.
+- Added `role="progressbar"`, `aria-valuemin="0"`, `aria-valuemax="100"`, and the calculated `aria-valuenow` to the visible treatment progress surface. The readable free-delivery text remains inside that surface.
+
+### E2E behavior now covered
+
+- exact control related-product ordering and treatment ranking;
+- control cart markup/CTA versus treatment progress/secure-checkout CTA;
+- control and treatment exposure delivery on their actual rendered surfaces;
+- cart-only free-shipping exposure, including direct checkout with a pre-seeded cart;
+- checkout reassurance absence in control and presence in treatment;
+- one product view with `direct` placement;
+- PDP, recommendation, and listing add-to-cart placement payloads, including resulting cart values and sizes;
+- one checkout start despite checkout rerenders and step changes;
+- no address completion after failed validation;
+- address and delivery events only after advancement;
+- payment completion at least 750 ms after payment submission begins, matching its placement after the 800 ms simulated phase;
+- preserved original database-free storefront happy path.
+
+### GREEN evidence and final verification
+
+After the production changes, the first full run passed the happy path, control wiring, and treatment/accessibility tests. The checkout event timestamps showed payment moved approximately 817 ms later, but the first test checkpoint awaited Playwright's async submit click and therefore started too late. The assertion was corrected to compare the captured event's `occurredAt` against the submission start time; production code did not change for that test-only correction.
+
+Isolated checkout GREEN:
+
+```text
+$env:AUTH_SECRET='test-only-rype-growth-secret-2026'; npm.cmd run e2e -- e2e/storefront.spec.ts --grep "checkout exposes"
+```
+
+Result: PASS — 1/1 test, exit code 0.
+
+Final full storefront E2E:
+
+```text
+$env:AUTH_SECRET='test-only-rype-growth-secret-2026'; npm.cmd run e2e -- e2e/storefront.spec.ts
+```
+
+Result: PASS — 4/4 Chromium tests, 22.2 s overall, exit code 0. The disposable Auth.js secret existed only in that process. The original happy path still logged expected missing-`DATABASE_URL` persistence failures and passed; the deterministic growth tests intercepted analytics requests and required no database.
+
+Other final verification:
+
+- Focused unit: `npm.cmd test -- __tests__/growth/provider.test.ts __tests__/growth/instrumentation.test.ts --pool=threads --maxWorkers=1` — PASS, 2 files and 8/8 tests.
+- Typecheck: `npm.cmd run typecheck` — PASS, exit code 0.
+- Lint: `npm.cmd run lint` — PASS, exit code 0.
+- Full unit: `npm.cmd test -- --pool=threads --maxWorkers=1 --reporter=dot` — PASS, 16 files and 129/129 tests.
+- Production build: `npm.cmd run build` — PASS, exit code 0 and 52 static pages generated through the existing catalog fallback.
+
+### Re-review self-review
+
+- Exposure scope now follows the user-approved actual-render rule. A fresh checkout provider cannot emit free-shipping exposure; the cart emits one for either assigned variant only when its progress surface renders.
+- Payment completion is after validation and the simulated payment phase, immediately adjacent to and before the existing order action.
+- Request interception applies only to growth endpoints; it does not hide the checkout server action's expected database-free failure or alter storefront state transitions.
+- Deterministic session IDs satisfy the existing anonymous identity format and assignments are still computed by production code rather than hard-coded in tests.
+- The control assertions verify original visible behavior, while treatment assertions cover only the three scoped experiment changes.
+- Progress semantics expose the same rounded percentage already visible in the treatment UI and retain human-readable text.
+
+### Re-review concerns
+
+No new implementation concerns or blockers. As before, database-free runs cannot persist growth events or complete an order, but analytics interception verifies client wiring and the existing fail-open/static storefront behavior remains intact.

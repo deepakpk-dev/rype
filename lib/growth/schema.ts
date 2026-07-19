@@ -9,11 +9,11 @@ const acquisitionToken = (maxLength: number) => z.string().trim()
   .max(maxLength)
   .regex(/^[a-zA-Z0-9_-]+$/);
 const experimentKeys = Object.keys(EXPERIMENTS) as [ExperimentKey, ...ExperimentKey[]];
-const experimentKeySchema = z.enum(experimentKeys);
-const variantSchema = z.enum(["control", "treatment"] satisfies [Variant, ...Variant[]]);
+export const experimentKeySchema = z.enum(experimentKeys);
+export const variantSchema = z.enum(["control", "treatment"] satisfies [Variant, ...Variant[]]);
 const experimentsSchema = z.record(experimentKeySchema, variantSchema)
   .refine((value) => Object.keys(value).length <= 3, "At most three experiments are allowed");
-const attributionSchema = z.object({
+export const attributionSchema = z.object({
   utmSource: acquisitionToken(80).optional(),
   utmMedium: acquisitionToken(80).optional(),
   utmCampaign: acquisitionToken(120).optional(),

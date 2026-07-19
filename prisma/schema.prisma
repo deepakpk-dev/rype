@@ -109,3 +109,52 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
 }
+
+model GrowthSession {
+  id               String               @id
+  firstSeenAt      DateTime             @default(now())
+  lastSeenAt       DateTime             @updatedAt
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  landingPath      String?
+  referrerCategory String?
+  demo             Boolean              @default(false)
+  events           GrowthEvent[]
+  exposures        ExperimentExposure[]
+}
+
+model GrowthEvent {
+  id           String        @id
+  session      GrowthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId    String
+  name         String
+  occurredAt   DateTime
+  productId    String?
+  orderId      String?
+  cartValue    Int?
+  cartSize     Int?
+  quantity     Int?
+  unitPrice    Int?
+  placement    String?
+  checkoutStep Int?
+  demo         Boolean       @default(false)
+
+  @@index([name, occurredAt])
+  @@index([sessionId, occurredAt])
+  @@index([orderId])
+}
+
+model ExperimentExposure {
+  id         String        @id @default(cuid())
+  session    GrowthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId  String
+  experiment String
+  version    Int
+  variant    String
+  exposedAt  DateTime
+  demo       Boolean       @default(false)
+
+  @@unique([sessionId, experiment, version])
+  @@index([experiment, version, variant])
+}

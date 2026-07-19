@@ -37,18 +37,18 @@ function storedIdentity(): GrowthIdentity | undefined {
     return inMemoryIdentity;
   }
 
-  // Storage is available again, so it is authoritative over the fallback.
-  inMemoryIdentity = undefined;
-  if (!value) return undefined;
+  if (!value) return inMemoryIdentity;
   try {
     const parsed = JSON.parse(value) as Partial<GrowthIdentity>;
     const attribution = attributionSchema.safeParse(parsed.attribution);
     if (!parsed.sessionId || !SESSION_ID_PATTERN.test(parsed.sessionId) || !attribution.success) {
-      return undefined;
+      return inMemoryIdentity;
     }
+    // A valid stored value is authoritative over the temporary fallback.
+    inMemoryIdentity = undefined;
     return { sessionId: parsed.sessionId, attribution: attribution.data };
   } catch {
-    return undefined;
+    return inMemoryIdentity;
   }
 }
 

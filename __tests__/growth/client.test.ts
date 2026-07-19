@@ -77,6 +77,19 @@ describe("getGrowthIdentity", () => {
     expect(second).toEqual(first);
     expect(second.sessionId).toMatch(/^sess_[a-f0-9-]{36}$/);
   });
+
+  it("keeps the fallback when storage reads work but writes are disabled", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockReturnValue(null);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage is read-only");
+    });
+
+    const first = getGrowthIdentity();
+    const second = getGrowthIdentity();
+
+    expect(second).toEqual(first);
+    expect(second.sessionId).toBe(first.sessionId);
+  });
 });
 
 describe("growth transport", () => {

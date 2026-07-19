@@ -7,11 +7,15 @@ import { Minus, Plus, Trash2, X, ShoppingBasket, ArrowRight } from "lucide-react
 import { useCart, cartTotals } from "@/lib/stores";
 import { useCatalog } from "@/lib/catalog-context";
 import { formatEUR } from "@/lib/utils";
+import { ExperimentExposure } from "@/components/growth/ExperimentExposure";
+import { FreeShippingProgress } from "@/components/growth/FreeShippingProgress";
+import { useGrowth } from "@/lib/growth/GrowthProvider";
 
 export function CartDrawer() {
   const pathname = usePathname();
   const { items, drawerOpen, closeDrawer, setQty, remove } = useCart();
   const products = useCatalog();
+  const { variant } = useGrowth();
   if (pathname?.startsWith("/admin")) return null;
   const { subtotal, shipping, total, FREE_SHIPPING_AT } = cartTotals(items, products);
   const progress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_AT) * 100));
@@ -49,8 +53,13 @@ export function CartDrawer() {
               </button>
             </header>
 
-            {subtotal > 0 && (
+            {subtotal > 0 && variant("free_shipping_progress_v1") === "treatment" && (
+              <FreeShippingProgress subtotal={subtotal} />
+            )}
+
+            {subtotal > 0 && variant("free_shipping_progress_v1") === "control" && (
               <div className="border-b border-rype-line px-5 py-3">
+                <ExperimentExposure experiment="free_shipping_progress_v1" />
                 <div className="mb-1.5 flex justify-between text-xs text-rype-mute">
                   <span>
                     {remaining > 0
@@ -163,7 +172,9 @@ export function CartDrawer() {
                   onClick={closeDrawer}
                   className="btn-primary w-full"
                 >
-                  Checkout
+                  {variant("free_shipping_progress_v1") === "treatment"
+                    ? "Continue to secure checkout"
+                    : "Checkout"}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </footer>

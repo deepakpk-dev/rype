@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, Scale, Leaf, MapPin, Minus, Plus, ShoppingBasket, Truck, Shield } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -10,6 +10,11 @@ import { useCart, useWishlist, useCompare } from "@/lib/stores";
 import { ProductCard } from "@/components/product/ProductCard";
 import { toast } from "@/components/ui/Toaster";
 import type { Nutrition, ProductRow } from "@/lib/products/queries";
+import { useCatalog } from "@/lib/catalog-context";
+import { ExperimentExposure } from "@/components/growth/ExperimentExposure";
+import { useGrowth } from "@/lib/growth/GrowthProvider";
+import { addToCartEvent, productViewedEvent } from "@/lib/growth/instrumentation";
+import { rankRelatedProducts } from "@/lib/growth/ranking";
 
 export default function PDPClient({
   product: p,
@@ -23,14 +28,35 @@ export default function PDPClient({
   const [imageIndex, setImageIndex] = useState(0);
   const [qty, setQty] = useState(1);
   const add = useCart((s) => s.add);
+  const products = useCatalog();
+  const { ready, track, variant } = useGrowth();
+  const viewedProduct = useRef<string | undefined>(undefined);
   const wl = useWishlist();
   const cmp = useCompare();
 
   const inWl = wl.has(p.id);
   const inCmp = cmp.has(p.id);
+  const displayedRelated = useMemo(() => (
+    variant("related_product_ranking_v1") === "treatment"
+      ? rankRelatedProducts(related, p.category)
+      : related
+  ), [p.category, related, variant]);
+
+  useEffect(() => {
+    if (!ready || viewedProduct.current === p.id) return;
+    viewedProduct.current = p.id;
+    track(productViewedEvent(p));
+  }, [p, ready, track]);
 
   const onAdd = () => {
     add(p.id, qty);
+    track(addToCartEvent({
+      product: p,
+      quantity: qty,
+      items: useCart.getState().items,
+      products,
+      placement: "pdp",
+    }));
     toast(`Added ${qty} × ${p.name}`);
   };
 
@@ -210,10 +236,11 @@ export default function PDPClient({
 
       {related.length > 0 && (
         <section className="mt-20">
+          <ExperimentExposure experiment="related_product_ranking_v1" />
           <h2 className="mb-6 font-display text-2xl font-semibold sm:text-3xl">You may also like</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {related.map((r, i) => (
-              <ProductCard key={r.id} p={r} index={i} />
+            {displayedRelated.map((r, i) => (
+              <ProductCard key={r.id} p={r} index={i} placement="recommendation" />
             ))}
           </div>
         </section>

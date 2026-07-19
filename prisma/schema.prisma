@@ -122,6 +122,8 @@ model GrowthSession {
   demo             Boolean              @default(false)
   events           GrowthEvent[]
   exposures        ExperimentExposure[]
+
+  @@index([utmSource, utmCampaign])
 }
 
 model GrowthEvent {

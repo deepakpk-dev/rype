@@ -2,18 +2,22 @@ import { z } from "zod";
 import { EXPERIMENTS, type ExperimentKey, type Variant } from "@/lib/growth/experiments";
 
 const opaqueId = z.string().regex(/^[a-zA-Z0-9_-]{8,80}$/);
-const entityId = z.string().trim().min(1).max(80);
+const entityId = z.string().trim().regex(/^[a-zA-Z0-9_-]{1,80}$/);
 const money = z.number().int().min(0).max(100_000_000);
+const acquisitionToken = (maxLength: number) => z.string().trim()
+  .min(1)
+  .max(maxLength)
+  .regex(/^[a-zA-Z0-9_-]+$/);
 const experimentKeys = Object.keys(EXPERIMENTS) as [ExperimentKey, ...ExperimentKey[]];
 const experimentKeySchema = z.enum(experimentKeys);
 const variantSchema = z.enum(["control", "treatment"] satisfies [Variant, ...Variant[]]);
 const experimentsSchema = z.record(experimentKeySchema, variantSchema)
   .refine((value) => Object.keys(value).length <= 3, "At most three experiments are allowed");
 const attributionSchema = z.object({
-  utmSource: z.string().trim().max(80).optional(),
-  utmMedium: z.string().trim().max(80).optional(),
-  utmCampaign: z.string().trim().max(120).optional(),
-  landingPath: z.string().startsWith("/").max(200),
+  utmSource: acquisitionToken(80).optional(),
+  utmMedium: acquisitionToken(80).optional(),
+  utmCampaign: acquisitionToken(120).optional(),
+  landingPath: z.string().startsWith("/").max(200).regex(/^\/[^?#]*$/),
   referrerCategory: z.enum(["direct", "search", "social", "referral", "internal"]),
 }).strict();
 const common = {

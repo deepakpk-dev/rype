@@ -46,7 +46,7 @@ export default function CheckoutPage() {
   // Drop cart lines whose product no longer exists (stale localStorage).
   const items = rawItems.filter((i) => products.some((p) => p.id === i.productId));
   const totals = cartTotals(items, products);
-  const { ready, track, variant } = useGrowth();
+  const { ready, growth, track, variant } = useGrowth();
   const checkoutStarted = useRef(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [slot, setSlot] = useState(DELIVERY_SLOTS[0].id);
@@ -110,6 +110,7 @@ export default function CheckoutPage() {
         country: values.country,
       },
       items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
+      growth,
     });
 
     if (!res.ok) {

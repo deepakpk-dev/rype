@@ -25,6 +25,10 @@ import {
 
 type GrowthContextValue = {
   ready: boolean;
+  growth?: {
+    sessionId: string;
+    experiments: GrowthAssignments;
+  };
   variant: (key: ExperimentKey) => Variant;
   expose: (key: ExperimentKey) => void;
   track: (event: PublicGrowthEventInput) => void;
@@ -89,6 +93,10 @@ export function GrowthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<GrowthContextValue>(() => ({
     ready: runtime !== undefined,
+    growth: runtime && {
+      sessionId: runtime.identity.sessionId,
+      experiments: runtime.assignments,
+    },
     variant,
     expose,
     track,

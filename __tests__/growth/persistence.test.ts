@@ -15,6 +15,7 @@ import {
   recordExposure,
   recordTrustedOrderCompleted,
 } from "@/lib/growth/persistence";
+import { assignVariant } from "@/lib/growth/experiments";
 
 const attribution = {
   utmSource: "google",
@@ -246,6 +247,18 @@ describe("recordTrustedOrderCompleted", () => {
     for (const input of invalidInputs) {
       await expect(recordTrustedOrderCompleted(input as never)).rejects.toThrow("INVALID_TRUSTED_ORDER_EVENT");
     }
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a trusted variant that differs from deterministic assignment", async () => {
+    const assigned = assignVariant("sess_000000000001", "checkout_reassurance_v1");
+    const mismatched = assigned === "control" ? "treatment" : "control";
+
+    await expect(recordTrustedOrderCompleted({
+      ...validTrustedOrder,
+      experiments: { checkout_reassurance_v1: mismatched },
+    })).rejects.toThrow("INVALID_VARIANT");
+
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 

@@ -21,6 +21,27 @@ export function adminPathDecision(
   return "allow";
 }
 
+export function authorizeAdminRequest({
+  auth,
+  request: { nextUrl },
+}: {
+  auth: { user?: { role?: "admin" | "staff" } } | null;
+  request: { nextUrl: URL };
+}) {
+  const { pathname } = nextUrl;
+
+  if (auth && pathname === "/admin/login") {
+    return Response.redirect(new URL("/admin", nextUrl));
+  }
+
+  const decision = adminPathDecision(pathname, auth?.user?.role);
+  if (decision === "sign-in") return false;
+  if (decision === "deny") {
+    return Response.redirect(new URL("/admin?denied=1", nextUrl));
+  }
+  return true;
+}
+
 // Edge-safe Auth.js config used by middleware. Anything that needs Node
 // APIs (bcryptjs, DB drivers) must NOT live here — keep that in `auth.ts`.
 export const authConfig = {
@@ -36,21 +57,7 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const { pathname } = nextUrl;
-
-      // Bounce signed-in users off the login page.
-      if (auth && pathname === "/admin/login") {
-        return Response.redirect(new URL("/admin", nextUrl));
-      }
-
-      const decision = adminPathDecision(pathname, auth?.user?.role);
-      if (decision === "sign-in") return false;
-      if (decision === "deny") {
-        return Response.redirect(new URL("/admin?denied=1", nextUrl));
-      }
-      return true;
-    },
+    authorized: authorizeAdminRequest,
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as { role?: "admin" | "staff" }).role;

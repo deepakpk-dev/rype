@@ -132,3 +132,65 @@ Independent review found no Critical or Minor issues and one Important cross-tas
 
 - The live admin E2E remains dependent on Task 8's local deterministic growth seed and a local `DATABASE_URL`; only Playwright discovery was available in this task.
 - Production builds remain noisy without `DATABASE_URL`, matching the existing project behavior, although the build exits successfully.
+
+## Review findings follow-up
+
+Two required permission-regression findings were addressed after commit `73baac9`.
+
+### Fixes
+
+- Extracted `authorizeAdminRequest()` as the concrete authorization callback and assigned it directly to `authConfig.callbacks.authorized`.
+- Added observable callback assertions that staff receives a redirect response with `Location: http://localhost/admin?denied=1`, anonymous access returns `false` for Auth.js sign-in, and admin access returns `true`.
+- Moved the existing sidebar registry into `components/admin/adminNavigation.ts` and added `getAdminNavItems(role)`.
+- Updated `AdminSidebar` to consume that single shared registry.
+- Added assertions that the shared registry includes Growth for admins and excludes it for staff.
+
+### Follow-up TDD evidence
+
+#### Real callback RED
+
+Command:
+
+```text
+npm.cmd test -- __tests__/growth/permissions.test.ts
+```
+
+Result before extraction: exit 1; 1/4 tests failed with `authorizeAdminRequest is not a function`. The three existing permission tests remained green.
+
+#### Real callback GREEN
+
+Same command after assigning the extracted function to `authConfig.callbacks.authorized`: exit 0; 1 file passed; 4/4 tests passed.
+
+#### Sidebar visibility RED
+
+Command:
+
+```text
+npm.cmd test -- __tests__/growth/permissions.test.ts
+```
+
+Result before the shared registry module existed: exit 1; Vitest failed to resolve `@/components/admin/adminNavigation`, the expected missing-feature boundary.
+
+#### Sidebar visibility GREEN
+
+Same command after moving the existing registry and updating the sidebar consumer: exit 0; 1 file passed; 5/5 tests passed.
+
+### Follow-up verification
+
+- `npm.cmd test -- __tests__/growth/permissions.test.ts __tests__/growth/dashboard.test.ts`
+  - Exit 0; 2 files passed; 8/8 tests passed.
+- `npm.cmd test`
+  - Exit 0; 21 files passed; 161/161 tests passed.
+- `npm.cmd run typecheck`
+  - Exit 0; no TypeScript errors.
+- `npm.cmd run lint`
+  - Exit 0; no ESLint findings.
+- `$env:AUTH_SECRET='task7-review-local-build-verification-only'; npm.cmd run build`
+  - Exit 0; compiled successfully and generated 52/52 pages, including dynamic `/admin/growth`.
+  - Existing missing-`DATABASE_URL` Prisma messages and the Tailwind module-type warning remained non-fatal.
+- `.\node_modules\.bin\playwright.cmd test --list`
+  - Exit 0; discovered 6 tests across the admin and storefront specs.
+- `git diff --check`
+  - Exit 0; no whitespace errors.
+
+Independent re-review found no Critical, Important, or Minor issues. It confirmed the tested function is the actual Auth.js callback, the redirect/sign-in/allow assertions cover all three roles, the sidebar has one shared registry, and Growth remains admin-only. The live database-backed E2E concern above is unchanged.

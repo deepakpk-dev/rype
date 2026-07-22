@@ -29,12 +29,13 @@ export type ExposureInput = {
   attribution?: GrowthAttribution;
 };
 
+export const MAX_CLIENT_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
 const trustedOrderCompletedInputSchema = z.object({
   sessionId: z.string().regex(/^[a-zA-Z0-9_-]{8,80}$/),
   orderId: z.string().trim().regex(/^[a-zA-Z0-9_-]{1,80}$/),
   total: z.number().int().min(0).max(100_000_000),
   itemCount: z.number().int().min(1).max(999),
-  occurredAt: z.date().optional(),
   experiments: z.record(experimentKeySchema, variantSchema)
     .refine((value) => Object.keys(value).length <= 3, "At most three experiments are allowed")
     .optional(),
@@ -71,12 +72,19 @@ async function upsertSession(
   });
 }
 
-function eventData(event: PublicGrowthEvent) {
+function boundedClientTimestamp(clientTimestamp: Date, receivedAt: Date) {
+  return Math.abs(clientTimestamp.getTime() - receivedAt.getTime()) <= MAX_CLIENT_CLOCK_SKEW_MS
+    ? clientTimestamp
+    : receivedAt;
+}
+
+function eventData(event: PublicGrowthEvent, receivedAt: Date) {
   const common = {
     id: event.eventId,
     sessionId: event.sessionId,
     name: event.name,
-    occurredAt: new Date(event.occurredAt),
+    occurredAt: boundedClientTimestamp(new Date(event.occurredAt), receivedAt),
+    receivedAt,
   };
 
   switch (event.name) {
@@ -134,6 +142,7 @@ export async function persistPublicEvent(
   event: PublicGrowthEvent,
   attribution: GrowthAttribution | undefined = event.attribution,
 ): Promise<PersistenceResult> {
+  const receivedAt = new Date();
   try {
     const result = await prisma.$transaction(async (tx) => {
       const productId = productIdFor(event);
@@ -147,7 +156,7 @@ export async function persistPublicEvent(
 
       await upsertSession(tx, event.sessionId, attribution);
       try {
-        await tx.growthEvent.create({ data: eventData(event) });
+        await tx.growthEvent.create({ data: eventData(event, receivedAt) });
       } catch (error) {
         if (isEventIdConflict(error)) {
           return { accepted: true, duplicate: true } as const;
@@ -168,6 +177,7 @@ export async function recordExposure(input: ExposureInput) {
   if (assignVariant(input.sessionId, input.experiment) !== input.variant) {
     throw new Error("INVALID_VARIANT");
   }
+  const receivedAt = new Date();
 
   return prisma.$transaction(async (tx) => {
     await upsertSession(tx, input.sessionId, input.attribution);
@@ -184,7 +194,8 @@ export async function recordExposure(input: ExposureInput) {
         experiment: input.experiment,
         version: definition.version,
         variant: input.variant,
-        exposedAt: input.exposedAt,
+        exposedAt: boundedClientTimestamp(input.exposedAt, receivedAt),
+        receivedAt,
       },
       update: {},
     });
@@ -201,6 +212,7 @@ export async function recordTrustedOrderCompleted(input: TrustedOrderCompletedIn
       throw new Error("INVALID_VARIANT");
     }
   }
+  const receivedAt = new Date();
 
   try {
     const duplicate = await prisma.$transaction(async (tx) => {
@@ -211,7 +223,8 @@ export async function recordTrustedOrderCompleted(input: TrustedOrderCompletedIn
             id: `order_${trustedInput.orderId}`,
             sessionId: trustedInput.sessionId,
             name: "order_completed",
-            occurredAt: trustedInput.occurredAt ?? new Date(),
+            occurredAt: receivedAt,
+            receivedAt,
             orderId: trustedInput.orderId,
             cartValue: trustedInput.total,
             cartSize: trustedInput.itemCount,

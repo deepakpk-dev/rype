@@ -17,7 +17,8 @@ type FunnelStageName = (typeof FUNNEL_STAGES)[number];
 export type AnalyticsEvent = {
   sessionId: string;
   name: string;
-  occurredAt: Date;
+  receivedAt: Date;
+  placement?: string | null;
 };
 
 export type AnalyticsExposure = {
@@ -25,7 +26,7 @@ export type AnalyticsExposure = {
   experiment: string;
   version: number;
   variant: string;
-  exposedAt: Date;
+  receivedAt: Date;
 };
 
 export type FunnelResult = {
@@ -113,19 +114,27 @@ export function calculateExperimentResults(
   exposures: AnalyticsExposure[],
   events: AnalyticsEvent[],
 ): ExperimentResult[] {
-  const conversionEvents = new Set<string>(
-    Object.values(EXPERIMENTS).map(({ conversionEvent }) => conversionEvent),
-  );
-  const latestConversionByNameAndSession = new Map<string, Map<string, Date>>();
+  const latestConversionByExperimentAndSession = new Map<
+    ExperimentKey,
+    Map<string, Date>
+  >();
   for (const event of events) {
-    if (!conversionEvents.has(event.name)) continue;
-    let bySession = latestConversionByNameAndSession.get(event.name);
-    if (!bySession) {
-      bySession = new Map<string, Date>();
-      latestConversionByNameAndSession.set(event.name, bySession);
+    for (const key of Object.keys(EXPERIMENTS) as ExperimentKey[]) {
+      const definition = EXPERIMENTS[key];
+      const isRecommendationConversion = key !== "related_product_ranking_v1"
+        || event.placement === "recommendation";
+      if (event.name !== definition.conversionEvent || !isRecommendationConversion) continue;
+
+      let bySession = latestConversionByExperimentAndSession.get(key);
+      if (!bySession) {
+        bySession = new Map<string, Date>();
+        latestConversionByExperimentAndSession.set(key, bySession);
+      }
+      const current = bySession.get(event.sessionId);
+      if (!current || event.receivedAt > current) {
+        bySession.set(event.sessionId, event.receivedAt);
+      }
     }
-    const current = bySession.get(event.sessionId);
-    if (!current || event.occurredAt > current) bySession.set(event.sessionId, event.occurredAt);
   }
 
   return (Object.keys(EXPERIMENTS) as ExperimentKey[]).map((key) => {
@@ -136,7 +145,7 @@ export function calculateExperimentResults(
       if (exposure.experiment !== key || exposure.version !== definition.version) continue;
       if (!definition.variants.includes(exposure.variant as Variant)) continue;
       const current = firstExposureBySession.get(exposure.sessionId);
-      if (!current || exposure.exposedAt < current.exposedAt) {
+      if (!current || exposure.receivedAt < current.receivedAt) {
         firstExposureBySession.set(exposure.sessionId, exposure);
       }
     }
@@ -149,10 +158,10 @@ export function calculateExperimentResults(
     for (const exposure of firstExposureBySession.values()) {
       const variant = exposure.variant as Variant;
       variants[variant].exposures += 1;
-      const latestConversion = latestConversionByNameAndSession
-        .get(definition.conversionEvent)
+      const latestConversion = latestConversionByExperimentAndSession
+        .get(key)
         ?.get(exposure.sessionId);
-      if (latestConversion && latestConversion >= exposure.exposedAt) {
+      if (latestConversion && latestConversion >= exposure.receivedAt) {
         variants[variant].conversions += 1;
       }
     }

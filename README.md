@@ -62,8 +62,8 @@ flowchart LR
   H --> I["Strict Zod validation"]
   I --> J["Prisma transaction<br/>idempotent writes"]
   G --> J
-  J --> K["PostgreSQL growth tables"]
-  K --> L["Admin-authorized<br/>30-day UTC query"]
+  J --> K["PostgreSQL growth tables<br/>client time + server receivedAt"]
+  K --> L["Admin-authorized<br/>30-day server-time query"]
   L --> M["Funnel, acquisition,<br/>variant readouts"]
 ```
 
@@ -80,7 +80,7 @@ The growth code follows the existing Next.js App Router architecture:
 
 Assignment hashes `sessionId + experimentKey + allocationVersion` into a stable 50/50 control or treatment bucket. The opaque session ID is random and is not derived from identity, device attributes, or a fingerprint. Browser persistence prevents switching variants during a session.
 
-Assignment is not counted as exposure. An exposure is recorded only when the relevant experimental UI renders, with a unique database constraint on session, experiment, and version. Experiment conversion is attributed from the first exposure and only when the conversion occurs at or after it.
+Assignment is not counted as exposure. An exposure is recorded only when the relevant experimental UI renders, with a unique database constraint on session, experiment, and version. Every public event and exposure stores a server-controlled `receivedAt`; client clocks are retained only when they fall within a five-minute skew bound and otherwise resolve to receipt time. Rolling windows and post-exposure conversion ordering use `receivedAt`, so a stale or future browser clock cannot move rows into a reporting window or manufacture conversion order. Trusted `order_completed` rows use one server timestamp for both fields.
 
 The dashboard uses a single rolling 30-day UTC window. Funnel stages count a session once even if an action repeats. Acquisition is first-touch. Variant cards report exposures, conversions, conversion rate, absolute percentage-point lift, allocation balance, and a descriptive 95% Wilson interval. Fewer than 100 exposures in either variant is labeled `Insufficient evidence`; larger demo samples remain `Descriptive comparison only`. The code never selects a winner or reallocates traffic.
 
@@ -94,6 +94,8 @@ This table applies to the analytics layer. The separate fictional commerce order
 | `utm_source`, `utm_medium`, `utm_campaign` | Allowlisted and bounded | Coarse first-touch acquisition reporting |
 | Landing path and referrer category | Allowlisted/coarsened | Useful entry context without raw URLs |
 | Product/order IDs and integer-cent values | Stored only for typed events | Funnel and commerce diagnostics |
+| Client event time | Bounded to five minutes around server receipt | Diagnostics without trusting browser clocks for reporting |
+| Server `receivedAt` | Stored and used for windows/ordering | Stable chronology for attribution and dashboard queries |
 | Name, email, phone, delivery address | **Never stored or transported** | Not needed for the stated analytics purpose |
 | IP address, user-agent, device fingerprint | **Never stored or transported** | No fingerprinting or unnecessary device data |
 | Raw referrer URL, arbitrary query strings/metadata | **Never stored** | Avoid accidental secrets, PII, and unbounded payloads |
@@ -110,6 +112,8 @@ The pure `buildGrowthDemoRows()` builder uses the fixed anchor `2026-07-19T00:00
 - Instagram paid social.
 
 Every experiment receives at least 240 exposed sessions and at least 100 sessions per variant. The funnel and variant differences are generated, small, and intentionally inconclusive. Running the seed twice produces the same growth row IDs and totals.
+
+The schema includes timestamp-leading indexes for event time, exposure time, server receipt time, and session first-seen time. `npm run db:push` is appropriate for this local demo; an existing production database requires a reviewed Prisma migration that adds/backfills `receivedAt` and creates these indexes using the deployment strategy appropriate for its traffic and PostgreSQL version.
 
 ## Run the case study locally
 
@@ -231,6 +235,7 @@ e2e/                             # Storefront and admin browser flows
 - Wilson intervals communicate uncertainty but do not correct for repeated peeking, multiple comparisons, novelty, or seasonality.
 - Bot, employee, QA, and internal traffic are not filtered in this portfolio implementation.
 - Event delivery is best-effort and first-party; there is no warehouse reconciliation or formal data-quality SLA.
+- This branch includes the target Prisma schema but no generated production migration; rollout requires a reviewed migration and index-build plan.
 - There is no consent manager, identity stitching, experiment lifecycle console, automated rollout, or winner selection.
 
 ## Production rollout requirements
@@ -243,6 +248,7 @@ Before exposing real traffic or interpreting customer behavior, a production own
 - document anonymous identity lifetime and explicit cross-device/identity-stitching rules;
 - add event-volume, schema-rejection, allocation, missing-conversion, and ingestion-latency monitoring;
 - export or reconcile events to an analytics warehouse with versioned contracts and quality checks;
+- deploy a reviewed Prisma migration that backfills `receivedAt`, builds the time indexes safely, and verifies query plans before enabling reporting traffic;
 - run baseline sizing and power analysis before launch;
 - pre-register the hypothesis, primary/guardrail metrics, eligible population, duration, and stopping rules;
 - add experiment draft/review/start/stop/archive lifecycle controls and mutual-exclusion rules;

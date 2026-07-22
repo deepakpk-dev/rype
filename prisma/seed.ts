@@ -118,6 +118,7 @@ export function buildGrowthDemoRows(anchorDate: Date): GrowthDemoRows {
         version: EXPERIMENTS[experiment].version,
         variant: assignments[experiment],
         exposedAt: offset(firstSeenAt, minute * MINUTE),
+        receivedAt: offset(firstSeenAt, minute * MINUTE),
         demo: true,
       });
     };
@@ -126,13 +127,14 @@ export function buildGrowthDemoRows(anchorDate: Date): GrowthDemoRows {
       code: string,
       name: string,
       minute: number,
-      properties: Omit<Prisma.GrowthEventCreateManyInput, "id" | "sessionId" | "name" | "occurredAt" | "demo"> = {},
+      properties: Omit<Prisma.GrowthEventCreateManyInput, "id" | "sessionId" | "name" | "occurredAt" | "receivedAt" | "demo"> = {},
     ) => {
       events.push({
         id: `growth_demo_event_${code}_${sequence}`,
         sessionId,
         name,
         occurredAt: offset(firstSeenAt, minute * MINUTE),
+        receivedAt: offset(firstSeenAt, minute * MINUTE),
         ...properties,
         demo: true,
       });

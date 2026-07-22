@@ -176,4 +176,14 @@ describe("growth Prisma schema", () => {
 
     expect(prismaSchema).toContain("@@index([utmSource, utmCampaign])");
   });
+
+  it("stores server-received chronology with timestamp-leading dashboard indexes", () => {
+    const prismaSchema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
+
+    expect(prismaSchema).toMatch(/model GrowthEvent[\s\S]*?receivedAt\s+DateTime[\s\S]*?@@index\(\[receivedAt\]\)/);
+    expect(prismaSchema).toMatch(/model GrowthEvent[\s\S]*?@@index\(\[occurredAt\]\)/);
+    expect(prismaSchema).toMatch(/model ExperimentExposure[\s\S]*?receivedAt\s+DateTime[\s\S]*?@@index\(\[receivedAt\]\)/);
+    expect(prismaSchema).toMatch(/model ExperimentExposure[\s\S]*?@@index\(\[exposedAt\]\)/);
+    expect(prismaSchema).toMatch(/model GrowthSession[\s\S]*?@@index\(\[firstSeenAt\]\)/);
+  });
 });

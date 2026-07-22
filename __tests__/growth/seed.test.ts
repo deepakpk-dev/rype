@@ -61,6 +61,17 @@ describe("buildGrowthDemoRows", () => {
       expect(Object.keys(row).some((key) => FORBIDDEN_CUSTOMER_FIELDS.test(key))).toBe(false);
     }
   });
+
+  it("gives every event and exposure deterministic server-received chronology", () => {
+    const rows = buildGrowthDemoRows(ANCHOR);
+
+    expect(rows.events.every((row) => row.receivedAt instanceof Date)).toBe(true);
+    expect(rows.exposures.every((row) => row.receivedAt instanceof Date)).toBe(true);
+    expect(rows.events.every((row) =>
+      new Date(row.receivedAt!).getTime() === new Date(row.occurredAt).getTime())).toBe(true);
+    expect(rows.exposures.every((row) =>
+      new Date(row.receivedAt!).getTime() === new Date(row.exposedAt).getTime())).toBe(true);
+  });
 });
 
 describe("replaceGrowthDemoRows", () => {

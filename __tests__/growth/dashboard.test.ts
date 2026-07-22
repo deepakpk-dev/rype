@@ -87,6 +87,7 @@ describe("GrowthDashboard", () => {
     expect(html).toContain("Checkout reassurance");
     expect(html).toContain("Free shipping progress");
     expect(html).toContain("Related product ranking");
+    expect(html).toContain("Recommendation add-to-cart conversion");
     expect(html).toContain("Exposures");
     expect(html).toContain("Conversions");
     expect(html).toContain("25.0%");

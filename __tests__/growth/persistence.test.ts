@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
@@ -31,6 +31,7 @@ const validCheckoutStarted = {
   name: "checkout_started" as const,
   properties: { cartValue: 1098, cartSize: 2 },
 };
+const serverNow = new Date("2026-07-19T10:00:00.000Z");
 
 function runInteractiveTransaction() {
   prismaMock.$transaction.mockImplementation(async (callback: unknown) =>
@@ -39,11 +40,17 @@ function runInteractiveTransaction() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useFakeTimers();
+  vi.setSystemTime(serverNow);
   runInteractiveTransaction();
   prismaMock.growthSession.upsert.mockResolvedValue({});
   prismaMock.growthEvent.create.mockResolvedValue({});
   prismaMock.experimentExposure.upsert.mockResolvedValue({});
   prismaMock.product.findUnique.mockResolvedValue({ id: "p01" });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("persistPublicEvent", () => {
@@ -119,11 +126,29 @@ describe("persistPublicEvent", () => {
         id: "evt_000000000001",
         sessionId: "sess_000000000001",
         name: "checkout_started",
-        occurredAt: new Date("2026-07-19T10:00:00.000Z"),
+        occurredAt: serverNow,
+        receivedAt: serverNow,
         cartValue: 1098,
         cartSize: 2,
       },
     });
+  });
+
+  it("replaces future and stale client clocks with server receipt time", async () => {
+    await persistPublicEvent({
+      ...validCheckoutStarted,
+      eventId: "evt_future_clock_0001",
+      occurredAt: "2026-07-19T12:00:00.000Z",
+    }, attribution);
+    await persistPublicEvent({
+      ...validCheckoutStarted,
+      eventId: "evt_stale_clock_00001",
+      occurredAt: "2026-07-19T08:00:00.000Z",
+    }, attribution);
+
+    for (const call of prismaMock.growthEvent.create.mock.calls) {
+      expect(call[0].data).toMatchObject({ occurredAt: serverNow, receivedAt: serverNow });
+    }
   });
 
   it("does not overwrite first-touch attribution on later requests", async () => {
@@ -189,8 +214,22 @@ describe("recordExposure", () => {
         version: 1,
         variant: "treatment",
         exposedAt,
+        receivedAt: serverNow,
       },
       update: {},
+    }));
+  });
+
+  it("replaces a skewed exposure clock with server receipt time", async () => {
+    await recordExposure({
+      sessionId: "sess_000000000001",
+      experiment: "free_shipping_progress_v1",
+      variant: "treatment",
+      exposedAt: new Date("2026-07-19T12:00:00.000Z"),
+    });
+
+    expect(prismaMock.experimentExposure.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({ exposedAt: serverNow, receivedAt: serverNow }),
     }));
   });
 
@@ -268,7 +307,6 @@ describe("recordTrustedOrderCompleted", () => {
       orderId: "ord_1",
       total: 1497,
       itemCount: 2,
-      occurredAt: new Date("2026-07-19T10:00:00.000Z"),
       experiments: { free_shipping_progress_v1: "treatment" },
     });
 
@@ -277,12 +315,22 @@ describe("recordTrustedOrderCompleted", () => {
         id: "order_ord_1",
         sessionId: "sess_000000000001",
         name: "order_completed",
-        occurredAt: new Date("2026-07-19T10:00:00.000Z"),
+        occurredAt: serverNow,
+        receivedAt: serverNow,
         orderId: "ord_1",
         cartValue: 1497,
         cartSize: 2,
       },
     });
+  });
+
+  it("rejects caller-supplied chronology for trusted order conversions", async () => {
+    await expect(recordTrustedOrderCompleted({
+      ...validTrustedOrder,
+      occurredAt: new Date("2026-07-18T10:00:00.000Z"),
+    } as never)).rejects.toThrow("INVALID_TRUSTED_ORDER_EVENT");
+
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
   it("accepts only an event-id conflict as a trusted conversion retry", async () => {

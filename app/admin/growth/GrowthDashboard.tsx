@@ -28,7 +28,7 @@ const EXPERIMENT_LABELS: Record<ExperimentKey, string> = {
 };
 
 const EVENT_LABELS: Record<string, string> = {
-  add_to_cart: "Add-to-cart conversion",
+  add_to_cart: "Recommendation add-to-cart conversion",
   checkout_started: "Checkout-start conversion",
   order_completed: "Order conversion",
 };

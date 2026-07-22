@@ -5,14 +5,19 @@ import {
   wilsonInterval,
 } from "@/lib/growth/analytics";
 
-function event(sessionId: string, name: string, occurredAt = "2026-07-01T12:00:00.000Z") {
-  return { sessionId, name, occurredAt: new Date(occurredAt) };
+function event(
+  sessionId: string,
+  name: string,
+  receivedAt = "2026-07-01T12:00:00.000Z",
+  placement?: string,
+) {
+  return { sessionId, name, receivedAt: new Date(receivedAt), placement };
 }
 
 function exposure(
   sessionId: string,
   variant: "control" | "treatment",
-  exposedAt = "2026-07-01T12:00:00.000Z",
+  receivedAt = "2026-07-01T12:00:00.000Z",
   experiment = "checkout_reassurance_v1",
 ) {
   return {
@@ -20,7 +25,7 @@ function exposure(
     experiment,
     version: 1,
     variant,
-    exposedAt: new Date(exposedAt),
+    receivedAt: new Date(receivedAt),
   };
 }
 
@@ -98,17 +103,45 @@ describe("calculateExperimentResults", () => {
     expect(result[0].variants.treatment).toMatchObject({ exposures: 0, conversions: 0 });
   });
 
-  it.each([
-    ["checkout_reassurance_v1", "order_completed"],
-    ["free_shipping_progress_v1", "checkout_started"],
-    ["related_product_ranking_v1", "add_to_cart"],
-  ])("uses the registry conversion event for %s", (experiment, conversionEvent) => {
+  it.each(
+    [
+      ["checkout_reassurance_v1", "order_completed", undefined],
+      ["free_shipping_progress_v1", "checkout_started", undefined],
+      ["related_product_ranking_v1", "add_to_cart", "recommendation"],
+    ] satisfies Array<[string, string, string | undefined]>,
+  )("uses the registry conversion event for %s", (experiment, conversionEvent, placement) => {
     const result = calculateExperimentResults([
       exposure("s1", "treatment", undefined, experiment),
-    ], [event("s1", conversionEvent)]).find(({ key }) => key === experiment)!;
+    ], [event("s1", conversionEvent, undefined, placement)]).find(({ key }) => key === experiment)!;
 
     expect(result.conversionEvent).toBe(conversionEvent);
     expect(result.variants.treatment.conversions).toBe(1);
+  });
+
+  it("counts only recommendation add-to-cart events for related-product ranking", () => {
+    const result = calculateExperimentResults([
+      exposure("recommendation", "treatment", undefined, "related_product_ranking_v1"),
+      exposure("pdp", "treatment", undefined, "related_product_ranking_v1"),
+      exposure("listing", "treatment", undefined, "related_product_ranking_v1"),
+    ], [
+      event("recommendation", "add_to_cart", undefined, "recommendation"),
+      event("pdp", "add_to_cart", undefined, "pdp"),
+      event("listing", "add_to_cart", undefined, "listing"),
+    ]).find(({ key }) => key === "related_product_ranking_v1")!;
+
+    expect(result.variants.treatment).toMatchObject({ exposures: 3, conversions: 1 });
+  });
+
+  it("uses server-received chronology for post-exposure attribution", () => {
+    const result = calculateExperimentResults([
+      exposure("before", "treatment", "2026-07-01T12:00:00.000Z"),
+      exposure("after", "treatment", "2026-07-01T12:00:00.000Z"),
+    ], [
+      event("before", "order_completed", "2026-07-01T11:59:59.000Z"),
+      event("after", "order_completed", "2026-07-01T12:00:01.000Z"),
+    ]).find(({ key }) => key === "checkout_reassurance_v1")!;
+
+    expect(result.variants.treatment).toMatchObject({ exposures: 2, conversions: 1 });
   });
 
   it("reports lift, allocation balance, and no winner claim", () => {

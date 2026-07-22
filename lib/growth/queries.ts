@@ -80,22 +80,23 @@ export async function getGrowthDashboardData(): Promise<GrowthDashboardData> {
   try {
     const [events, exposures, sessions] = await Promise.all([
       prisma.growthEvent.findMany({
-        where: { occurredAt: { gte: start, lte: end } },
+        where: { receivedAt: { gte: start, lte: end } },
         select: {
           sessionId: true,
           name: true,
-          occurredAt: true,
+          receivedAt: true,
+          placement: true,
           demo: true,
         },
       }),
       prisma.experimentExposure.findMany({
-        where: { exposedAt: { gte: start, lte: end } },
+        where: { receivedAt: { gte: start, lte: end } },
         select: {
           sessionId: true,
           experiment: true,
           version: true,
           variant: true,
-          exposedAt: true,
+          receivedAt: true,
           demo: true,
         },
       }),

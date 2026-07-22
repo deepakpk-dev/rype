@@ -50,10 +50,12 @@ describe("getGrowthDashboardData", () => {
 
     expect(authMock).toHaveBeenCalledOnce();
     expect(prismaMock.growthEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { occurredAt: { gte: windowStart, lte: now } },
+      where: { receivedAt: { gte: windowStart, lte: now } },
+      select: expect.objectContaining({ receivedAt: true, placement: true }),
     }));
     expect(prismaMock.experimentExposure.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { exposedAt: { gte: windowStart, lte: now } },
+      where: { receivedAt: { gte: windowStart, lte: now } },
+      select: expect.objectContaining({ receivedAt: true }),
     }));
     expect(prismaMock.growthSession.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { firstSeenAt: { gte: windowStart, lte: now } },
@@ -65,13 +67,15 @@ describe("getGrowthDashboardData", () => {
       {
         sessionId: "s1",
         name: "product_viewed",
-        occurredAt: new Date("2026-07-20T12:00:00.000Z"),
+        receivedAt: new Date("2026-07-20T12:00:00.000Z"),
+        placement: "direct",
         demo: false,
       },
       {
         sessionId: "s2",
         name: "product_viewed",
-        occurredAt: new Date("2026-07-20T12:00:00.000Z"),
+        receivedAt: new Date("2026-07-20T12:00:00.000Z"),
+        placement: "direct",
         demo: true,
       },
     ]);

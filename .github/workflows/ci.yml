@@ -52,15 +52,23 @@ jobs:
         id: e2e-secrets
         run: echo "has=${{ secrets.DATABASE_URL != '' && secrets.AUTH_SECRET != '' }}" >> "$GITHUB_OUTPUT"
 
-      - name: Start server for E2E
-        # Start the production server in the background so Playwright can
-        # reuse it. Explicit env ensures AUTH_URL (Auth.js v5) and DB are
-        # available to the running server process. The dummy AUTH_SECRET
-        # fallback lets the server boot when secrets are unavailable.
+      - name: Start server for DB-backed E2E
+        if: steps.e2e-secrets.outputs.has == 'true'
+        # When both secrets are available, keep the database-backed server
+        # for the admin flow and the storefront flow against the seeded DB.
         run: npm run start &
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'ci-dummy-secret-for-build-only-do-not-use' }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: http://localhost:3000
+
+      - name: Start server for DB-free storefront E2E
+        if: steps.e2e-secrets.outputs.has != 'true'
+        # Fork PRs and local-style CI runs must exercise the storefront's
+        # static catalog fallback without inheriting a partial DB secret.
+        run: npm run start &
+        env:
+          AUTH_SECRET: ci-dummy-secret-for-build-only-do-not-use
           AUTH_URL: http://localhost:3000
 
       - name: Wait for server

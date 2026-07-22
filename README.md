@@ -147,20 +147,18 @@ Open `/admin/growth`. A correctly seeded view shows the `Seeded demo data` badge
 
 ### Dashboard screenshot
 
-This changeset does **not** include `public/readme-growth-dashboard.png`: the implementation environment had no `DATABASE_URL`, `.env.local`, local PostgreSQL service/client, or Docker runtime. A database-backed `/admin/growth` page therefore could not be captured. No mock or fabricated dashboard image is substituted.
+![Rype seeded growth dashboard](./public/readme-growth-dashboard.png)
 
-To create the real portfolio asset locally:
+This portfolio asset renders the actual `GrowthDashboard` component from deterministic `buildGrowthDemoRows()` output transformed by the production analytics functions. The visible figures are synthetic aggregates; the image contains no credentials or customer identity. The temporary local-only capture harness was removed after capture.
+
+To refresh the asset from the authenticated, database-backed dashboard locally:
 
 1. Configure a loopback/local PostgreSQL `DATABASE_URL` and `AUTH_SECRET` in `.env.local`.
 2. Confirm the fixed demo anchor still falls inside the dashboard's rolling 30-day window. If it has aged out, choose a new explicit fixed anchor and update the seed test before seeding; do not switch to a moving clock.
 3. Run `npm run db:push && npm run db:seed && npm run build`.
 4. Run `npm run start`, sign in as the seeded admin, and open `/admin/growth` at a desktop viewport.
 5. Confirm the page visibly includes `Seeded demo data` and contains no credentials or customer identity.
-6. Capture the page to `public/readme-growth-dashboard.png` and replace this limitation note with:
-
-```markdown
-![Rype seeded growth dashboard](./public/readme-growth-dashboard.png)
-```
+6. Replace `public/readme-growth-dashboard.png` with a full-page capture.
 
 ## Existing commerce product
 

@@ -52,24 +52,44 @@ jobs:
         id: e2e-secrets
         run: echo "has=${{ secrets.DATABASE_URL != '' && secrets.AUTH_SECRET != '' }}" >> "$GITHUB_OUTPUT"
 
-      - name: Start server for E2E
-        # Start the production server in the background so Playwright can
-        # reuse it. Explicit env ensures AUTH_URL (Auth.js v5) and DB are
-        # available to the running server process. The dummy AUTH_SECRET
-        # fallback lets the server boot when secrets are unavailable.
-        run: npm run start &
+      - name: Start server for DB-free storefront E2E
+        # Storefront coverage is intentionally independent of PostgreSQL even
+        # when repository secrets are available for the later admin flow.
+        run: |
+          node_modules/.bin/next start > "$RUNNER_TEMP/rype-storefront.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/rype-storefront.pid"
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'ci-dummy-secret-for-build-only-do-not-use' }}
+          AUTH_SECRET: ci-dummy-secret-for-build-only-do-not-use
           AUTH_URL: http://localhost:3000
 
-      - name: Wait for server
+      - name: Wait for storefront server
         run: npx wait-on http://localhost:3000 --timeout 60000
 
       - name: Run storefront E2E (no DB required)
         run: npx playwright test e2e/storefront.spec.ts
         env:
           AUTH_URL: http://localhost:3000
+
+      - name: Stop storefront server
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/rype-storefront.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/rype-storefront.pid")" || true
+          fi
+
+      - name: Start server for DB-backed admin E2E
+        if: steps.e2e-secrets.outputs.has == 'true'
+        run: |
+          node_modules/.bin/next start > "$RUNNER_TEMP/rype-admin.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/rype-admin.pid"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: http://localhost:3000
+
+      - name: Wait for admin server
+        if: steps.e2e-secrets.outputs.has == 'true'
+        run: npx wait-on http://localhost:3000 --timeout 60000
 
       - name: Run admin E2E
         if: steps.e2e-secrets.outputs.has == 'true'
@@ -78,3 +98,10 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
+
+      - name: Stop admin server
+        if: always() && steps.e2e-secrets.outputs.has == 'true'
+        run: |
+          if [ -f "$RUNNER_TEMP/rype-admin.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/rype-admin.pid")" || true
+          fi

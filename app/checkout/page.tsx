@@ -5,13 +5,20 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, MapPin, Calendar } from "lucide-react";
 import { useCart, cartTotals } from "@/lib/stores";
 import { useCatalog } from "@/lib/catalog-context";
 import { placeOrderAction } from "@/lib/orders/actions";
 import { formatEUR, cn } from "@/lib/utils";
+import { CheckoutReassurance } from "@/components/growth/CheckoutReassurance";
+import { ExperimentExposure } from "@/components/growth/ExperimentExposure";
+import { useGrowth } from "@/lib/growth/GrowthProvider";
+import {
+  checkoutStartedEvent,
+  checkoutStepCompletedEvent,
+} from "@/lib/growth/instrumentation";
 
 const addressSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -39,6 +46,8 @@ export default function CheckoutPage() {
   // Drop cart lines whose product no longer exists (stale localStorage).
   const items = rawItems.filter((i) => products.some((p) => p.id === i.productId));
   const totals = cartTotals(items, products);
+  const { ready, growth, track, variant } = useGrowth();
+  const checkoutStarted = useRef(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [slot, setSlot] = useState(DELIVERY_SLOTS[0].id);
   const [submitting, setSubmitting] = useState(false);
@@ -53,6 +62,12 @@ export default function CheckoutPage() {
     defaultValues: { country: "Ireland" },
   });
 
+  useEffect(() => {
+    if (!ready || items.length === 0 || checkoutStarted.current) return;
+    checkoutStarted.current = true;
+    track(checkoutStartedEvent(items, products));
+  }, [items, products, ready, track]);
+
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-xl px-4 py-20 text-center">
@@ -66,8 +81,14 @@ export default function CheckoutPage() {
   const next = async () => {
     if (step === 1) {
       const ok = await trigger();
-      if (ok) setStep(2);
-    } else if (step === 2) setStep(3);
+      if (ok) {
+        track(checkoutStepCompletedEvent(1, items, products));
+        setStep(2);
+      }
+    } else if (step === 2) {
+      track(checkoutStepCompletedEvent(2, items, products));
+      setStep(3);
+    }
   };
 
   const onSubmit = handleSubmit(async (values) => {
@@ -78,6 +99,7 @@ export default function CheckoutPage() {
 
     // The server prices the order from the database and decrements stock in
     // the same transaction — we only send ids and quantities.
+    track(checkoutStepCompletedEvent(3, items, products));
     const res = await placeOrderAction({
       customer: {
         name: `${values.firstName} ${values.lastName}`,
@@ -88,6 +110,7 @@ export default function CheckoutPage() {
         country: values.country,
       },
       items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
+      growth,
     });
 
     if (!res.ok) {
@@ -102,6 +125,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <ExperimentExposure experiment="checkout_reassurance_v1" />
       <Link href="/products" className="inline-flex items-center gap-1 text-sm text-rype-mute hover:text-rype-ink">
         <ArrowLeft className="h-4 w-4" /> Continue shopping
       </Link>
@@ -274,6 +298,7 @@ export default function CheckoutPage() {
 
         {/* Summary */}
         <aside className="h-fit lg:sticky lg:top-24">
+          {variant("checkout_reassurance_v1") === "treatment" && <CheckoutReassurance />}
           <div className="card p-5">
             <h3 className="font-display text-lg font-semibold">Order summary</h3>
             <ul className="mt-4 space-y-3">

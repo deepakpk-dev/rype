@@ -3,29 +3,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingBag,
-  Users,
   LogOut,
   Leaf,
 } from "lucide-react";
+import { getAdminNavItems } from "@/components/admin/adminNavigation";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/admin-users";
-
-type NavItem = {
-  href: string;
-  label: string;
-  icon: typeof LayoutDashboard;
-  roles: Role[];
-};
-
-const NAV: NavItem[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "staff"] },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag, roles: ["admin", "staff"] },
-  { href: "/admin/inventory", label: "Inventory", icon: Package, roles: ["admin"] },
-  { href: "/admin/users", label: "Users", icon: Users, roles: ["admin"] },
-];
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -34,7 +17,7 @@ export function AdminSidebar() {
 
   if (!user || !user.role) return null;
   const role = user.role as Role;
-  const visible = NAV.filter((n) => n.roles.includes(role));
+  const visible = getAdminNavItems(role);
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r border-rype-line bg-white">

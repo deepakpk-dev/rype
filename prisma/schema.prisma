@@ -1,4 +1,5 @@
-// Prisma schema. Run `npx prisma db push` after setting DATABASE_URL.
+// Prisma schema. Use `db push` for the local demo only. Existing production
+// databases require a reviewed migration and safe index-build plan.
 // See README → "Database setup".
 
 generator client {
@@ -108,4 +109,62 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model GrowthSession {
+  id               String               @id
+  firstSeenAt      DateTime             @default(now())
+  lastSeenAt       DateTime             @updatedAt
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  landingPath      String?
+  referrerCategory String?
+  demo             Boolean              @default(false)
+  events           GrowthEvent[]
+  exposures        ExperimentExposure[]
+
+  @@index([firstSeenAt])
+  @@index([utmSource, utmCampaign])
+}
+
+model GrowthEvent {
+  id           String        @id
+  session      GrowthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId    String
+  name         String
+  occurredAt   DateTime
+  receivedAt   DateTime      @default(now())
+  productId    String?
+  orderId      String?
+  cartValue    Int?
+  cartSize     Int?
+  quantity     Int?
+  unitPrice    Int?
+  placement    String?
+  checkoutStep Int?
+  demo         Boolean       @default(false)
+
+  @@index([name, occurredAt])
+  @@index([sessionId, occurredAt])
+  @@index([occurredAt])
+  @@index([receivedAt])
+  @@index([orderId])
+}
+
+model ExperimentExposure {
+  id         String        @id @default(cuid())
+  session    GrowthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId  String
+  experiment String
+  version    Int
+  variant    String
+  exposedAt  DateTime
+  receivedAt DateTime      @default(now())
+  demo       Boolean       @default(false)
+
+  @@unique([sessionId, experiment, version])
+  @@index([experiment, version, variant])
+  @@index([exposedAt])
+  @@index([receivedAt])
 }

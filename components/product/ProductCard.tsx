@@ -6,6 +6,10 @@ import { Heart, Plus, Scale, Leaf } from "lucide-react";
 import { formatEUR, cn } from "@/lib/utils";
 import { useCart, useWishlist, useCompare } from "@/lib/stores";
 import { toast } from "@/components/ui/Toaster";
+import { useCatalog } from "@/lib/catalog-context";
+import { useGrowth } from "@/lib/growth/GrowthProvider";
+import { addToCartEvent } from "@/lib/growth/instrumentation";
+import type { AddToCartPlacement } from "@/lib/growth/instrumentation";
 
 // Structural shape — accepts both the Prisma `Product` row and the static
 // `data/products.ts` Product type. Keeps this card decoupled from either.
@@ -23,8 +27,18 @@ export type CardProduct = {
   images: string[];
 };
 
-export function ProductCard({ p, index = 0 }: { p: CardProduct; index?: number }) {
+export function ProductCard({
+  p,
+  index = 0,
+  placement = "listing",
+}: {
+  p: CardProduct;
+  index?: number;
+  placement?: AddToCartPlacement;
+}) {
   const add = useCart((s) => s.add);
+  const products = useCatalog();
+  const { track } = useGrowth();
   const wl = useWishlist();
   const cmp = useCompare();
   const inWl = wl.ids.includes(p.id);
@@ -120,6 +134,13 @@ export function ProductCard({ p, index = 0 }: { p: CardProduct; index?: number }
         <button
           onClick={() => {
             add(p.id);
+            track(addToCartEvent({
+              product: p,
+              quantity: 1,
+              items: useCart.getState().items,
+              products,
+              placement,
+            }));
             toast(`Added ${p.name}`);
           }}
           disabled={soldOut}

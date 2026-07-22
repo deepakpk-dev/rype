@@ -9,6 +9,9 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/growth/persistence", () => ({
+  recordTrustedOrderCompleted: vi.fn(),
+}));
 
 import {
   placeOrderAction,
@@ -17,9 +20,11 @@ import {
 } from "@/lib/orders/actions";
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
+import { recordTrustedOrderCompleted } from "@/lib/growth/persistence";
 
 const mockAuth = vi.mocked(auth);
 const mockTransaction = vi.mocked(prisma.$transaction);
+const recordTrustedOrderCompletedMock = vi.mocked(recordTrustedOrderCompleted);
 
 const customer = {
   name: "Ada Lovelace",
@@ -50,6 +55,7 @@ function stubTransaction(rows: { id: string; name: string; price: number }[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  recordTrustedOrderCompletedMock.mockResolvedValue({ accepted: true, duplicate: false });
 });
 
 describe("placeOrderAction", () => {
@@ -139,6 +145,61 @@ describe("placeOrderAction", () => {
       items: [{ productId: "p01", qty: 1 }],
     });
     expect(res.ok).toBe(false);
+  });
+
+  it("records a trusted conversion after a successful order", async () => {
+    stubTransaction([{ id: "p01", name: "Tomatoes", price: 549 }]);
+
+    const result = await placeOrderAction({
+      customer,
+      items: [{ productId: "p01", qty: 2 }],
+      growth: {
+        sessionId: "sess_000000000002",
+        experiments: { checkout_reassurance_v1: "treatment" },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(recordTrustedOrderCompletedMock).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: "sess_000000000002",
+      total: 1497,
+      itemCount: 2,
+      experiments: { checkout_reassurance_v1: "treatment" },
+    }));
+  });
+
+  it("does not fail checkout when analytics persistence fails", async () => {
+    stubTransaction([{ id: "p01", name: "Tomatoes", price: 549 }]);
+    recordTrustedOrderCompletedMock.mockRejectedValue(new Error("analytics unavailable"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(placeOrderAction({
+      customer,
+      items: [{ productId: "p01", qty: 2 }],
+      growth: {
+        sessionId: "sess_000000000002",
+        experiments: { checkout_reassurance_v1: "treatment" },
+      },
+    })).resolves.toEqual(expect.objectContaining({ ok: true, total: 1497 }));
+
+    expect(errorSpy).toHaveBeenCalledWith("Order conversion analytics failed:", expect.any(Error));
+    errorSpy.mockRestore();
+  });
+
+  it("rejects growth payloads containing checkout PII before opening a transaction", async () => {
+    const result = await placeOrderAction({
+      customer,
+      items: [{ productId: "p01", qty: 1 }],
+      growth: {
+        sessionId: "sess_000000000002",
+        experiments: { checkout_reassurance_v1: "treatment" },
+        email: "ada@example.com",
+      },
+    } as never);
+
+    expect(result).toEqual({ ok: false, error: "Invalid order payload" });
+    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(recordTrustedOrderCompletedMock).not.toHaveBeenCalled();
   });
 });
 

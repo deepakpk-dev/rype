@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/Toaster";
 import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
 import { CatalogProvider } from "@/lib/catalog-context";
 import { listProducts } from "@/lib/products/queries";
+import { GrowthProvider } from "@/lib/growth/GrowthProvider";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -34,15 +35,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body className="font-sans">
         <SessionProviderWrapper>
-          <CatalogProvider products={products}>
-            <Header />
-            <main className="min-h-[calc(100vh-240px)]">{children}</main>
-            <Footer />
-            <CartDrawer />
-            <CompareTray />
-            <SearchCommand />
-            <Toaster />
-          </CatalogProvider>
+          <GrowthProvider>
+            <CatalogProvider products={products}>
+              <Header />
+              <main className="min-h-[calc(100vh-240px)]">{children}</main>
+              <Footer />
+              <CartDrawer />
+              <CompareTray />
+              <SearchCommand />
+              <Toaster />
+            </CatalogProvider>
+          </GrowthProvider>
         </SessionProviderWrapper>
       </body>
     </html>

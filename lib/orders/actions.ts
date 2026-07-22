@@ -6,6 +6,8 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { shippingFor } from "@/lib/cart-math";
+import { recordTrustedOrderCompleted } from "@/lib/growth/persistence";
+import { experimentKeySchema, variantSchema } from "@/lib/growth/schema";
 import type { OrderStatus } from "@prisma/client";
 
 const ORDER_STATUSES = [
@@ -34,6 +36,11 @@ const placeSchema = z.object({
     )
     .min(1)
     .max(100),
+  growth: z.object({
+    sessionId: z.string().regex(/^[a-zA-Z0-9_-]{8,80}$/),
+    experiments: z.record(experimentKeySchema, variantSchema)
+      .refine((value) => Object.keys(value).length <= 3, "At most three experiments are allowed"),
+  }).strict().optional(),
 });
 
 // Prices, names, and totals come from the database — never from the client.
@@ -46,7 +53,7 @@ export async function placeOrderAction(
   if (!parsed.success) {
     return { ok: false, error: "Invalid order payload" };
   }
-  const { customer, items } = parsed.data;
+  const { customer, items, growth } = parsed.data;
 
   // Merge duplicate product ids so the per-product stock guard sees the
   // combined quantity.
@@ -102,6 +109,20 @@ export async function placeOrderAction(
         },
       });
     });
+
+    if (growth) {
+      try {
+        await recordTrustedOrderCompleted({
+          sessionId: growth.sessionId,
+          orderId: order.id,
+          total: order.total,
+          itemCount: items.reduce((sum, item) => sum + item.qty, 0),
+          experiments: growth.experiments,
+        });
+      } catch (error) {
+        console.error("Order conversion analytics failed:", error);
+      }
+    }
 
     // Refresh admin views that show orders, plus the storefront ISR pages
     // that render stock.

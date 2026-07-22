@@ -9,6 +9,7 @@ import {
   Users,
   LogOut,
   Leaf,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/admin-users";
@@ -23,6 +24,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "staff"] },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag, roles: ["admin", "staff"] },
+  { href: "/admin/growth", label: "Growth", icon: TrendingUp, roles: ["admin"] },
   { href: "/admin/inventory", label: "Inventory", icon: Package, roles: ["admin"] },
   { href: "/admin/users", label: "Users", icon: Users, roles: ["admin"] },
 ];

@@ -36,6 +36,19 @@ type AttributionRow = {
   referrerCategory: string | null;
 };
 
+export function emptyGrowthDashboardData(
+  end = new Date(),
+): GrowthDashboardData {
+  const start = new Date(end.getTime() - GROWTH_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  return {
+    funnel: calculateFunnel([]),
+    experiments: calculateExperimentResults([], []),
+    acquisition: [],
+    includesDemo: false,
+    window: { start, end, days: GROWTH_WINDOW_DAYS },
+  };
+}
+
 function calculateAcquisition(rows: AttributionRow[]): AcquisitionResult[] {
   const grouped = new Map<string, AcquisitionResult>();
 

@@ -1,6 +1,7 @@
 # Rype growth engineering case study
 
 > A first-party experimentation and conversion analytics layer built into a full-stack grocery storefront.
+> 
 > **Live Demo** https://rype-one.vercel.app/ 
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)

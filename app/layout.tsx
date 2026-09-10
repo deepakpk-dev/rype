@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -12,17 +11,6 @@ import { CatalogProvider } from "@/lib/catalog-context";
 import { listProducts } from "@/lib/products/queries";
 import { GrowthProvider } from "@/lib/growth/GrowthProvider";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
-  display: "swap",
-});
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: "Rype — Fresh European Produce, Door to Door",
   description:
@@ -32,7 +20,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const products = await listProducts();
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
+    <html lang="en">
       <body className="font-sans">
         <SessionProviderWrapper>
           <GrowthProvider>

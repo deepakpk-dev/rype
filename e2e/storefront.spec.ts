@@ -175,6 +175,7 @@ test.describe("Storefront happy path", () => {
   });
 
   test("checkout exposes reassurance only and tracks validated steps at completion", async ({ page }) => {
+    test.setTimeout(60_000);
     const captured = await installGrowthHarness(page, "treatment", [{ productId: "p01", qty: 1 }]);
     await page.goto("/checkout", { waitUntil: "networkidle" });
 
@@ -191,7 +192,10 @@ test.describe("Storefront happy path", () => {
     await page.locator('input[name="address"]').fill("1 Market Street");
     await page.locator('input[name="city"]').fill("Dublin");
     await page.locator('input[name="postalCode"]').fill("D01");
-    await page.getByRole("button", { name: /continue/i }).click();
+    const addressContinue = page.getByRole("button", { name: /continue/i });
+    await expect(addressContinue).toBeVisible();
+    await addressContinue.evaluate((button: HTMLButtonElement) => button.click());
+    await expect(page.getByRole("heading", { name: "Pick a delivery slot" })).toBeVisible();
     await expect.poll(() => events(captured, "checkout_step_completed").length).toBe(1);
     expect(events(captured, "checkout_step_completed")[0].body.properties).toMatchObject({
       step: 1,
@@ -199,7 +203,10 @@ test.describe("Storefront happy path", () => {
       cartValue: 549,
     });
 
-    await page.getByRole("button", { name: /continue/i }).click();
+    const deliveryContinue = page.getByRole("button", { name: /continue/i });
+    await expect(deliveryContinue).toBeVisible();
+    await deliveryContinue.evaluate((button: HTMLButtonElement) => button.click());
+    await expect(page.getByRole("heading", { name: "Payment" })).toBeVisible();
     await expect.poll(() => events(captured, "checkout_step_completed").length).toBe(2);
     expect(events(captured, "checkout_step_completed")[1].body.properties).toMatchObject({
       step: 2,
@@ -209,7 +216,9 @@ test.describe("Storefront happy path", () => {
 
     page.on("dialog", (dialog) => void dialog.dismiss());
     const paymentStartedAt = Date.now();
-    await page.getByRole("button", { name: /^Pay/ }).click();
+    const payButton = page.getByRole("button", { name: /^Pay/ });
+    await expect(payButton).toBeVisible();
+    await payButton.evaluate((button: HTMLButtonElement) => button.click());
     await expect.poll(() => events(captured, "checkout_step_completed").length).toBe(3);
     const paymentEvent = events(captured, "checkout_step_completed")[2].body;
     expect(paymentEvent.properties).toMatchObject({

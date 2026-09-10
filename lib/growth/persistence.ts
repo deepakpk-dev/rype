@@ -63,12 +63,18 @@ async function upsertSession(
   sessionId: string,
   attribution?: GrowthAttribution,
 ) {
-  return tx.growthSession.upsert({
+  await tx.growthSession.createMany({
+    data: [sessionCreateData(sessionId, attribution)],
+    // PostgreSQL turns this into ON CONFLICT DO NOTHING, so concurrent public
+    // events can safely establish the same new session.
+    skipDuplicates: true,
+  });
+
+  return tx.growthSession.update({
     where: { id: sessionId },
-    create: sessionCreateData(sessionId, attribution),
     // Attribution is first-touch. An existing session is deliberately only
     // touched for lastSeenAt by Prisma's @updatedAt behavior.
-    update: {},
+    data: {},
   });
 }
 

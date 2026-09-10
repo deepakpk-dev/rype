@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
-  growthSession: { upsert: vi.fn() },
+  growthSession: { createMany: vi.fn(), update: vi.fn() },
   growthEvent: { create: vi.fn() },
   experimentExposure: { upsert: vi.fn() },
   product: { findUnique: vi.fn() },
@@ -43,7 +43,8 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(serverNow);
   runInteractiveTransaction();
-  prismaMock.growthSession.upsert.mockResolvedValue({});
+  prismaMock.growthSession.createMany.mockResolvedValue({ count: 1 });
+  prismaMock.growthSession.update.mockResolvedValue({});
   prismaMock.growthEvent.create.mockResolvedValue({});
   prismaMock.experimentExposure.upsert.mockResolvedValue({});
   prismaMock.product.findUnique.mockResolvedValue({ id: "p01" });
@@ -66,12 +67,9 @@ describe("persistPublicEvent", () => {
     });
   });
 
-  it("does not misclassify a session-upsert unique failure as an event retry", async () => {
-    const failure = {
-      code: "P2002",
-      meta: { modelName: "GrowthSession", target: ["id"] },
-    };
-    prismaMock.growthSession.upsert.mockRejectedValue(failure);
+  it("does not misclassify a session-touch failure as an event retry", async () => {
+    const failure = new Error("database unavailable");
+    prismaMock.growthSession.update.mockRejectedValue(failure);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     await expect(persistPublicEvent(validCheckoutStarted, attribution)).rejects.toBe(failure);
@@ -109,17 +107,20 @@ describe("persistPublicEvent", () => {
       duplicate: false,
     });
 
-    expect(prismaMock.growthSession.upsert).toHaveBeenCalledWith({
-      where: { id: "sess_000000000001" },
-      create: {
+    expect(prismaMock.growthSession.createMany).toHaveBeenCalledWith({
+      data: [{
         id: "sess_000000000001",
         utmSource: "google",
         utmMedium: undefined,
         utmCampaign: "spring",
         landingPath: "/products",
         referrerCategory: "search",
-      },
-      update: {},
+      }],
+      skipDuplicates: true,
+    });
+    expect(prismaMock.growthSession.update).toHaveBeenCalledWith({
+      where: { id: "sess_000000000001" },
+      data: {},
     });
     expect(prismaMock.growthEvent.create).toHaveBeenCalledWith({
       data: {
@@ -131,6 +132,26 @@ describe("persistPublicEvent", () => {
         cartValue: 1098,
         cartSize: 2,
       },
+    });
+  });
+
+  it("initializes a session with a conflict-safe insert before persisting an event", async () => {
+    await persistPublicEvent(validCheckoutStarted, attribution);
+
+    expect(prismaMock.growthSession.createMany).toHaveBeenCalledWith({
+      data: [{
+        id: "sess_000000000001",
+        utmSource: "google",
+        utmMedium: undefined,
+        utmCampaign: "spring",
+        landingPath: "/products",
+        referrerCategory: "search",
+      }],
+      skipDuplicates: true,
+    });
+    expect(prismaMock.growthSession.update).toHaveBeenCalledWith({
+      where: { id: "sess_000000000001" },
+      data: {},
     });
   });
 
@@ -154,7 +175,7 @@ describe("persistPublicEvent", () => {
   it("does not overwrite first-touch attribution on later requests", async () => {
     await persistPublicEvent(validCheckoutStarted, attribution);
 
-    expect(prismaMock.growthSession.upsert.mock.calls[0][0].update).toEqual({});
+    expect(prismaMock.growthSession.update.mock.calls[0][0].data).toEqual({});
   });
 
   it("rejects an unknown product before persisting its event", async () => {

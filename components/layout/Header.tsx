@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, Search, ShoppingBasket, Scale, Menu, X } from "lucide-react";
+import { Heart, Search, ShoppingBasket, Scale, Menu, X, UserRound, Leaf } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { useCart, useWishlist, useCompare } from "@/lib/stores";
 import { useEffect, useState } from "react";
@@ -36,45 +36,51 @@ export function Header() {
   return (
     <>
       {/* announcement strip */}
-      <div className="bg-rype-ink text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-center gap-6 px-4 py-1.5 text-xs tracking-wide">
-          <span>Free delivery over €50</span>
-          <span className="hidden h-1 w-1 rounded-full bg-white/40 sm:inline-block" />
-          <span className="hidden sm:inline">24h farm-to-door · Europe wide</span>
+      <div className="bg-[#edf1db] text-rype-ink/75">
+        <div className="mx-auto flex max-w-7xl items-center justify-center gap-3 px-4 py-1.5 text-[10px] tracking-wide sm:gap-5 sm:text-xs">
+          <Leaf className="h-3 w-3 text-rype-leafDark" />
+          <span>Free delivery on orders over €50</span>
+          <span className="hidden h-3 w-px bg-rype-ink/20 sm:inline-block" />
+          <span className="hidden sm:inline">Fresh produce from European growers</span>
+          <span className="hidden h-3 w-px bg-rype-ink/20 md:inline-block" />
+          <span className="hidden md:inline">A brighter food tomorrow</span>
         </div>
       </div>
 
       <header
         className={`sticky top-0 z-40 border-b transition-all ${
           elevated
-            ? "border-rype-line bg-rype-cream/80 backdrop-blur-lg"
-            : "border-transparent bg-rype-cream"
+            ? "border-rype-line bg-white/90 backdrop-blur-lg"
+            : "border-transparent bg-white"
         }`}
       >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
+        <div className="mx-auto grid h-[4.5rem] max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
           <Logo />
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden justify-self-center lg:flex lg:items-center lg:gap-0.5">
             {NAV.map((n) => (
               <Link
                 key={n.href}
                 href={n.href}
-                className="rounded-full px-3.5 py-2 text-sm font-medium text-rype-ink/80 transition hover:bg-rype-leaf/10 hover:text-rype-leafDark"
+                className="rounded-full px-3 py-2 text-sm font-medium text-rype-ink/80 transition hover:bg-rype-leaf/10 hover:text-rype-leafDark"
               >
                 {n.label}
               </Link>
             ))}
           </nav>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-self-end gap-1">
             <button
               aria-label="Search"
               onClick={() => window.dispatchEvent(new CustomEvent("rype:open-search"))}
-              className="hidden items-center gap-2 rounded-full border border-rype-line bg-white px-3 py-2 text-xs text-rype-mute transition hover:border-rype-leaf md:inline-flex"
+              className="hidden w-64 items-center gap-2 rounded-full border border-rype-line bg-white px-3.5 py-2.5 text-xs text-rype-mute transition hover:border-rype-leaf md:inline-flex xl:w-72"
             >
               <Search className="h-3.5 w-3.5" />
-              <span>Search produce…</span>
-              <kbd className="ml-3 rounded bg-rype-ink/5 px-1.5 py-0.5 text-[10px] font-medium text-rype-ink/60">
+              <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left">
+                <span className="xl:hidden">Search market</span>
+                <span className="hidden xl:inline">Search produce, recipes, or boxes…</span>
+              </span>
+              <kbd className="rounded bg-rype-ink/5 px-1.5 py-0.5 text-[10px] font-medium text-rype-ink/60">
                 ⌘K
               </kbd>
             </button>
@@ -92,6 +98,9 @@ export function Header() {
             >
               <Scale className="h-5 w-5" />
               <Badge n={compareCount} />
+            </Link>
+            <Link href="/admin/login" aria-label="Account" className="hidden rounded-full p-2 text-rype-ink hover:bg-rype-ink/5 sm:inline-flex">
+              <UserRound className="h-5 w-5" />
             </Link>
             <Link
               href="/wishlist"

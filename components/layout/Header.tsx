@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, Search, ShoppingBasket, Scale, Menu, X, UserRound, Leaf } from "lucide-react";
+import { Heart, Search, ShoppingBasket, Scale, Menu, X, Leaf } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { useCart, useWishlist, useCompare } from "@/lib/stores";
 import { useEffect, useState } from "react";
@@ -98,9 +98,6 @@ export function Header() {
             >
               <Scale className="h-5 w-5" />
               <Badge n={compareCount} />
-            </Link>
-            <Link href="/admin/login" aria-label="Account" className="hidden rounded-full p-2 text-rype-ink hover:bg-rype-ink/5 sm:inline-flex">
-              <UserRound className="h-5 w-5" />
             </Link>
             <Link
               href="/wishlist"

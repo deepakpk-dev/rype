@@ -35,7 +35,7 @@ export function Footer() {
           <div className="space-y-2 text-xs leading-5 text-rype-mute"><p>hello@rype.com</p><p>+44 20 1234 5678</p><p>Mon – Fri, 8am – 6pm (CET)</p><p className="flex items-center gap-1.5 pt-2"><MapPin className="h-3.5 w-3.5 text-rype-leafDark" /> London, UK</p></div>
         </div>
       </div>
-      <div className="border-t border-rype-line"><div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-4 text-[10px] text-rype-mute sm:flex-row"><span>© {new Date().getFullYear()} Rype. All rights reserved.</span><span className="flex items-center gap-3"><span className="flex items-center gap-1"><Clock3 className="h-3 w-3" /> 24h delivery</span><span className="flex items-center gap-1"><Leaf className="h-3 w-3" /> 100% freshness guarantee</span><Sparkles className="h-3.5 w-3.5 text-rype-leafDark" /></span></div></div>
+      <div className="border-t border-rype-line"><div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-4 text-[10px] text-rype-mute sm:flex-row"><span>© {new Date().getFullYear()} Rype. All rights reserved.</span><span className="flex items-center gap-3"><span className="flex items-center gap-1"><Clock3 className="h-3 w-3" /> 24h delivery in selected areas</span><span className="flex items-center gap-1"><Leaf className="h-3 w-3" /> 100% freshness guarantee</span><Sparkles className="h-3.5 w-3.5 text-rype-leafDark" /></span></div></div>
     </footer>
   );
 }

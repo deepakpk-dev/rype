@@ -11,7 +11,7 @@ import {
 
 const prisma = new PrismaClient();
 
-export const GROWTH_DEMO_ANCHOR = new Date("2026-07-19T00:00:00.000Z");
+export const GROWTH_DEMO_ANCHOR = new Date("2026-09-06T00:00:00.000Z");
 
 const DEMO_SESSION_COUNT = 480;
 const MINUTE = 60 * 1000;

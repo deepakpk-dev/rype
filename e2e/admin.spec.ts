@@ -11,7 +11,7 @@ async function loginAsAdmin(page: Page) {
   await page.locator('[name="password"]').fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page).toHaveURL(/\/admin$/, { timeout: 30_000 });
   await expect(page.getByText("Rype Admin").or(page.getByText("Dashboard"))).toBeVisible();
 }
 

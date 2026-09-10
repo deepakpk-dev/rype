@@ -128,7 +128,7 @@ export default async function Home() {
           <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0">
             <ProcessStep number="1" icon={<ShoppingBasket />} title="Pick your produce" copy="Browse our seasonal selection and add to your basket." />
             <ProcessStep number="2" icon={<Leaf />} title="We source fresh" copy="Our growers harvest at peak ripeness for best flavor." />
-            <ProcessStep number="3" icon={<Truck />} title="We deliver quickly" copy="From farm to your door in as little as 22 hours." />
+            <ProcessStep number="3" icon={<Truck />} title="We deliver quickly" copy="From farm to your door within 24 hours in selected delivery areas." />
             <ProcessStep number="4" icon={<Heart />} title="Enjoy peak flavor" copy="Unpack, cook, and taste the difference." />
           </div>
           <div className="mt-8 grid border-t border-rype-line pt-7 lg:grid-cols-[1.2fr_2fr] lg:items-center">
@@ -139,7 +139,7 @@ export default async function Home() {
             </div>
             <div className="grid grid-cols-2 gap-y-7 border-t border-rype-line pt-7 sm:grid-cols-4 sm:gap-0 sm:border-t-0 sm:pt-0 lg:pl-6">
               <Metric icon={<Sprout />} value="120+" label="Farms sourced from across Europe" />
-              <Metric icon={<Clock3 />} value="22h" label="Average farm-to-door delivery time" />
+              <Metric icon={<Clock3 />} value="24h" label="In selected delivery areas" />
               <Metric icon={<Leaf />} value="68%" label="Organic selection" />
               <Metric icon={<Star />} value="9.6/10" label="Freshness score from 5,000+ customers" />
             </div>
@@ -198,7 +198,7 @@ function Hero() {
           <h1 className="max-w-md font-display text-5xl font-semibold leading-[0.9] tracking-tight text-rype-ink sm:text-6xl lg:text-7xl">Ripe today.<br />Ready<br /><span className="italic text-rype-leafDark">tomorrow</span><span className="text-rype-orange">.</span></h1>
           <p className="mt-6 max-w-md text-sm leading-6 text-rype-ink/70 sm:max-w-[23rem] sm:text-base lg:max-w-md xl:mt-5">Rype sources the finest fruits, vegetables and herbs from European growers who pick for flavor first, then delivers them to your doorstep, fresh, fragrant, and ready to enjoy.</p>
           <div className="mt-6 flex flex-wrap gap-3 xl:mt-4"><Link href="/products" className="btn-primary px-6 py-3">Shop the market <ArrowRight className="h-4 w-4" /></Link><Link href="/products?category=bundles" className="btn-outline px-6 py-3">This week&apos;s boxes</Link></div>
-          <div className="mt-7 grid max-w-lg grid-cols-2 gap-x-3 gap-y-3 border-t border-rype-line pt-5 sm:max-w-[23rem] lg:max-w-lg lg:grid-cols-3 xl:mt-4 xl:pt-4"><Proof icon={<Truck />} label="24h delivery" detail="Fresh to your door" /><Proof icon={<Leaf />} label="Freshness guaranteed" detail="We make it right" /><Proof icon={<Sprout />} label="Seasonal sourcing" detail="From European growers" /></div>
+          <div className="mt-7 grid max-w-lg grid-cols-2 gap-x-3 gap-y-3 border-t border-rype-line pt-5 sm:max-w-[23rem] lg:max-w-lg lg:grid-cols-3 xl:mt-4 xl:pt-4"><Proof icon={<Truck />} label="24h delivery" detail="In selected areas" /><Proof icon={<Leaf />} label="Freshness guaranteed" detail="We make it right" /><Proof icon={<Sprout />} label="Seasonal sourcing" detail="From European growers" /></div>
           </div>
         </div>
       </div>

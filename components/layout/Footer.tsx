@@ -18,18 +18,20 @@ export function Footer() {
 
   return (
     <footer className="border-t border-rype-line bg-[#fbfaf3]">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 sm:py-14 lg:grid-cols-[1.25fr_repeat(3,1fr)_1.1fr] lg:gap-8">
-        <div>
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-10 px-4 py-12 sm:grid-cols-2 sm:py-14 lg:grid-cols-[1.25fr_repeat(3,1fr)_1.1fr] lg:gap-8">
+        <div className="col-span-2 sm:col-span-1">
           <Logo />
           <p className="mt-4 max-w-[13rem] text-xs leading-5 text-rype-mute">Good food. Brighter days. European produce, from people who care to people who care.</p>
           <div className="mt-5 flex gap-2 text-rype-ink/70"><a href="#" aria-label="Instagram" className="rounded-full border border-rype-line p-2 hover:bg-white"><Instagram className="h-4 w-4" /></a><a href="#" aria-label="Facebook" className="rounded-full border border-rype-line p-2 hover:bg-white"><Facebook className="h-4 w-4" /></a></div>
         </div>
-        {columns.map((column) => (
-          <div key={column.title}>
-            <div className="mb-4 text-xs font-semibold text-rype-ink">{column.title}</div>
-            <ul className="space-y-2 text-xs text-rype-mute">{column.links.map(([label, href]) => <li key={label}><Link href={href} className="hover:text-rype-leafDark">{label}</Link></li>)}</ul>
-          </div>
-        ))}
+        <div className="contents">
+          {columns.map((column) => (
+            <div key={column.title}>
+              <div className="mb-3 text-xs font-semibold text-rype-ink">{column.title}</div>
+              <ul className="space-y-1 text-[0.8125rem] leading-6 text-rype-mute">{column.links.map(([label, href]) => <li key={label}><Link href={href} className="inline-flex min-h-6 items-center hover:text-rype-leafDark">{label}</Link></li>)}</ul>
+            </div>
+          ))}
+        </div>
         <div>
           <div className="mb-4 text-xs font-semibold text-rype-ink">Contact</div>
           <div className="space-y-2 text-xs leading-5 text-rype-mute"><p>hello@rype.com</p><p>+44 20 1234 5678</p><p>Mon – Fri, 8am – 6pm (CET)</p><p className="flex items-center gap-1.5 pt-2"><MapPin className="h-3.5 w-3.5 text-rype-leafDark" /> London, UK</p></div>

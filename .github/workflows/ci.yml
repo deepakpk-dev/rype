@@ -13,6 +13,20 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rype
+          POSTGRES_PASSWORD: rype_ci
+          POSTGRES_DB: rype_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rype -d rype_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,12 +60,6 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Check for E2E secrets
-        # Fork PRs cannot read repository secrets. DB-dependent E2E (admin
-        # login) is skipped there; the DB-free storefront E2E always runs.
-        id: e2e-secrets
-        run: echo "has=${{ secrets.DATABASE_URL != '' && secrets.AUTH_SECRET != '' }}" >> "$GITHUB_OUTPUT"
-
       - name: Start server for DB-free storefront E2E
         # Storefront coverage is intentionally independent of PostgreSQL even
         # when repository secrets are available for the later admin flow.
@@ -77,30 +85,48 @@ jobs:
             kill "$(cat "$RUNNER_TEMP/rype-storefront.pid")" || true
           fi
 
+      - name: Prepare isolated admin E2E fixtures
+        # This job owns the disposable database, including destructive demo seeding.
+        # Keep growth fixtures in the rolling 30-day window as the calendar advances.
+        run: |
+          npx prisma db push
+          node --import tsx prisma/seed.ts
+          node --import tsx --input-type=module <<'JS'
+          import { PrismaClient } from '@prisma/client';
+          import seed from './prisma/seed.ts';
+          const { buildGrowthDemoRows, replaceGrowthDemoRows } = seed;
+          const database = new PrismaClient();
+          try {
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            await replaceGrowthDemoRows(database, buildGrowthDemoRows(yesterday));
+          } finally {
+            await database.$disconnect();
+          }
+          JS
+        env:
+          DATABASE_URL: postgresql://rype:rype_ci@localhost:5432/rype_e2e
+
       - name: Start server for DB-backed admin E2E
-        if: steps.e2e-secrets.outputs.has == 'true'
         run: |
           node_modules/.bin/next start > "$RUNNER_TEMP/rype-admin.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/rype-admin.pid"
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          DATABASE_URL: postgresql://rype:rype_ci@localhost:5432/rype_e2e
+          AUTH_SECRET: ci-dummy-secret-for-build-only-do-not-use
           AUTH_URL: http://localhost:3000
 
       - name: Wait for admin server
-        if: steps.e2e-secrets.outputs.has == 'true'
         run: npx wait-on http://localhost:3000 --timeout 60000
 
       - name: Run admin E2E
-        if: steps.e2e-secrets.outputs.has == 'true'
-        run: npx playwright test e2e/admin.spec.ts
+        run: npx playwright test e2e/admin.spec.ts e2e/authorization.spec.ts
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          DATABASE_URL: postgresql://rype:rype_ci@localhost:5432/rype_e2e
+          AUTH_SECRET: ci-dummy-secret-for-build-only-do-not-use
           AUTH_URL: http://localhost:3000
 
       - name: Stop admin server
-        if: always() && steps.e2e-secrets.outputs.has == 'true'
+        if: always()
         run: |
           if [ -f "$RUNNER_TEMP/rype-admin.pid" ]; then
             kill "$(cat "$RUNNER_TEMP/rype-admin.pid")" || true

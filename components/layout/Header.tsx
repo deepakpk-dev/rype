@@ -54,7 +54,7 @@ export function Header() {
             : "border-transparent bg-white"
         }`}
       >
-        <div className="mx-auto grid h-[4.5rem] max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
+        <div className="mx-auto grid h-[4.5rem] max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 sm:gap-4 sm:px-6 lg:grid-cols-[auto_1fr_auto] lg:gap-6 lg:px-8">
           <Logo />
 
           <nav className="hidden justify-self-center lg:flex lg:items-center lg:gap-0.5">
@@ -69,7 +69,7 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center justify-self-end gap-1">
+          <div className="flex items-center justify-self-end sm:gap-1">
             <button
               aria-label="Search"
               onClick={() => window.dispatchEvent(new CustomEvent("rype:open-search"))}

@@ -66,7 +66,7 @@ jobs:
         run: npx wait-on http://localhost:3000 --timeout 60000
 
       - name: Run storefront E2E (no DB required)
-        run: npx playwright test e2e/storefront.spec.ts
+        run: npx playwright test e2e/storefront.spec.ts e2e/mobile-responsive.spec.ts
         env:
           AUTH_URL: http://localhost:3000
 

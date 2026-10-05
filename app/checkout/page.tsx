@@ -132,23 +132,23 @@ export default function CheckoutPage() {
       <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight sm:text-5xl">Checkout</h1>
 
       {/* Steps */}
-      <ol className="mt-6 flex items-center gap-3 text-sm">
+      <ol className="mt-6 grid grid-cols-3 items-center gap-1 text-xs sm:flex sm:gap-3 sm:text-sm">
         {[
           { n: 1, label: "Address", icon: MapPin },
           { n: 2, label: "Delivery", icon: Calendar },
           { n: 3, label: "Payment", icon: CreditCard },
         ].map((s, i) => (
-          <li key={s.n} className="flex items-center gap-3">
+          <li key={s.n} className="flex min-w-0 items-center sm:gap-3">
             <div
               className={cn(
-                "flex items-center gap-2 rounded-full px-3 py-1.5 transition",
+                "flex w-full items-center justify-center gap-1 rounded-full px-2 py-1.5 transition sm:w-auto sm:gap-2 sm:px-3",
                 step >= s.n ? "bg-rype-leaf text-white" : "bg-white text-rype-mute"
               )}
             >
-              <s.icon className="h-3.5 w-3.5" />
+              <s.icon className="h-3.5 w-3.5 shrink-0" />
               <span className="font-medium">{s.label}</span>
             </div>
-            {i < 2 && <div className="h-px w-6 bg-rype-line" />}
+            {i < 2 && <div className="hidden h-px w-6 bg-rype-line sm:block" />}
           </li>
         ))}
       </ol>

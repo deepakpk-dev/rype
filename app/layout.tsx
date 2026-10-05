@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   title: "Rype — Fresh European Produce, Door to Door",
   description:
     "Farm-fresh fruits, vegetables, and herbs from small European growers, delivered in 24 hours.",
+  icons: { icon: "/logo.svg" },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

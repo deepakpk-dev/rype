@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Apple,
   ArrowRight,
+  Carrot,
+  PackageOpen,
   ShoppingBasket,
   Check,
   Clock3,
@@ -28,6 +31,8 @@ const CATEGORY_COPY: Record<Category, { description: string; action: string }> =
   bundles: { description: "Curated boxes for every table", action: "Shop bundles" },
 };
 
+const CATEGORY_ICONS = { fruits: Apple, vegetables: Carrot, herbs: Sprout, bundles: PackageOpen };
+
 export default async function Home() {
   let featured: ProductRow[] = [];
   try {
@@ -45,33 +50,47 @@ export default async function Home() {
     <div className={`${styles.home} bg-rype-cream`}>
       <Hero />
 
-      <section className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:pb-14 sm:pt-14">
-        <SectionHeading title="Shop by category" href="/products" linkLabel="View all products" />
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className={styles.categorySection} aria-labelledby="category-heading">
+        <BotanicalSprig className={styles.categoryBranchTop} />
+        <BotanicalSprig className={styles.categoryBranchBottom} />
+        <div className={styles.categoryHeader}>
+          <p className={styles.categoryEyebrow}>Fresher days ahead</p>
+          <h2 id="category-heading" className={`${styles.categoryHeading} font-display`}>Shop by Category</h2>
+          <p className={styles.categoryIntro}>Real ingredients. Brighter meals. A healthier, happier you.</p>
+        </div>
+        <div className={styles.categoryGrid}>
           {CATEGORIES.map((category) => {
             const copy = CATEGORY_COPY[category.id];
+            const Icon = CATEGORY_ICONS[category.id];
             return (
               <Link
                 key={category.id}
                 href={`/products?category=${category.id}`}
-                className="group relative min-h-[152px] overflow-hidden rounded-xl border border-rype-line bg-[#f0f2e3] p-4 transition duration-300 hover:-translate-y-1 hover:border-rype-leaf/40 hover:shadow-lift"
+                className={styles.categoryCard}
+                data-category={category.id}
+                aria-labelledby={`${category.id}-category-title ${category.id}-category-action`}
+                aria-describedby={`${category.id}-category-description`}
               >
-                <Image
-                  src={category.id === "herbs" ? "/product-images/rype-catalog/basil.svg" : HOME_CATEGORY_ART[category.id]}
-                  alt={`${category.label} from the Rype market`}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className="object-cover object-right transition duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#f0f2e3]/95 via-[#f0f2e3]/58 to-transparent" />
-                <div className="relative flex h-full max-w-[10rem] flex-col justify-between">
-                  <div>
-                    <h3 className="font-display text-xl font-semibold leading-none text-rype-ink">{category.label}</h3>
-                    <p className="mt-1.5 text-xs leading-4 text-rype-ink/70">{copy.description}</p>
-                  </div>
-                  <span className="mt-5 inline-flex items-center gap-1 text-[11px] font-semibold text-rype-leafDark">
-                    {copy.action} <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" />
+                <span className={styles.categoryIcon} aria-hidden="true"><Icon strokeWidth={1.6} /></span>
+                <div className={styles.categoryCopy}>
+                  <h3 id={`${category.id}-category-title`} className="font-display">{category.label}</h3>
+                  <p id={`${category.id}-category-description`}>{copy.description}</p>
+                  <span id={`${category.id}-category-action`} className={styles.categoryAction}>
+                    {copy.action} <ArrowRight aria-hidden="true" />
                   </span>
+                </div>
+                <div className={styles.categoryVisual}>
+                  <div className={styles.categoryPhoto}>
+                    <Image
+                      src={HOME_CATEGORY_ART[category.id]}
+                      alt={`${category.label} from the Rype market`}
+                      fill
+                      sizes="(max-width: 359px) 34vw, (max-width: 519px) 132px, 140px"
+                      className={styles.categoryImage}
+                    />
+                  </div>
+                  <Leaf className={styles.categorySmallLeaf} strokeWidth={1.5} aria-hidden="true" />
+                  <BotanicalSprig className={styles.categorySprig} />
                 </div>
               </Link>
             );
@@ -203,6 +222,16 @@ function Hero() {
         </div>
       </div>
     </section>
+  );
+}
+
+function BotanicalSprig({ className }: { className: string }) {
+  return (
+    <svg className={className} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="M9 91C36 76 55 57 83 12" />
+      <path d="M31 77C17 67 22 48 29 39C40 52 39 65 31 77ZM47 62C32 52 38 32 45 23C56 39 57 49 47 62ZM62 43C54 28 66 11 80 6C79 24 73 35 62 43ZM34 75C47 61 63 61 80 65C65 78 49 82 34 75ZM52 55C66 42 80 39 94 41C87 55 71 62 52 55Z" />
+      <path d="M31 77L29 47M47 62L45 31M62 43L76 13M34 75L71 67M52 55L86 44" />
+    </svg>
   );
 }
 

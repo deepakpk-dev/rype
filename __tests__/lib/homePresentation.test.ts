@@ -9,10 +9,10 @@ import {
 describe("homepage presentation", () => {
   it("keeps the reference page's image-led sections wired to local assets", () => {
     expect(HOME_CATEGORY_ART).toEqual({
-      fruits: "/home-images/featured-products/strawberries.jpg",
-      vegetables: "/home-images/featured-products/heirloom-tomatoes.jpg",
-      herbs: "/home-images/featured-products/bundle-salad.jpg",
-      bundles: "/home-images/rype-seasonal-box.png",
+      fruits: "/home-images/categories/strawberries.webp",
+      vegetables: "/home-images/categories/heirloom-tomatoes.webp",
+      herbs: "/home-images/categories/basil.webp",
+      bundles: "/home-images/categories/produce-crate.webp",
     });
     expect(HOME_STORY_IMAGES).toEqual({
       hero: "/home-images/rype-home-hero-reference.png",

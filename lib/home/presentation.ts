@@ -5,10 +5,10 @@ export const HOME_STORY_IMAGES = {
 } as const;
 
 export const HOME_CATEGORY_ART = {
-  fruits: "/home-images/featured-products/strawberries.jpg",
-  vegetables: "/home-images/featured-products/heirloom-tomatoes.jpg",
-  herbs: "/home-images/featured-products/bundle-salad.jpg",
-  bundles: "/home-images/rype-seasonal-box.png",
+  fruits: "/home-images/categories/strawberries.webp",
+  vegetables: "/home-images/categories/heirloom-tomatoes.webp",
+  herbs: "/home-images/categories/basil.webp",
+  bundles: "/home-images/categories/produce-crate.webp",
 } as const;
 
 export const HOME_FEATURED_SLUGS = [
